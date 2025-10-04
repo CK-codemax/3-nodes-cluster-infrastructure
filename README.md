@@ -123,6 +123,69 @@ After Terraform completes, you'll have 3 EC2 instances ready for Kubernetes setu
    kubectl get pods -A
    ```
 
+## Automated Setup with Ansible
+
+For automated cluster setup, you can use the provided Ansible playbooks:
+
+### Prerequisites
+1. **Install Ansible:**
+   ```bash
+   pip install ansible
+   ```
+
+2. **Update inventory file:**
+   ```bash
+   cp cluster-setup/inventory/hosts-template.yml cluster-setup/inventory/hosts.yml
+   # Edit hosts.yml with your actual IP addresses from terraform output
+   ```
+
+3. **Test connectivity:**
+   ```bash
+   ansible all -m ping
+   ```
+
+### Run Individual Playbooks
+
+1. **Verify prerequisites:**
+   ```bash
+   ansible-playbook cluster-setup/playbooks/01-verify-prerequisites.yml
+   ```
+
+2. **Configure hostnames:**
+   ```bash
+   ansible-playbook cluster-setup/playbooks/02-configure-hostnames.yml
+   ```
+
+3. **Initialize master node:**
+   ```bash
+   ansible-playbook cluster-setup/playbooks/03-initi-master.yml
+   ```
+
+4. **Install CNI (Calico):**
+   ```bash
+   ansible-playbook cluster-setup/playbooks/04-install-cni.yml
+   ```
+
+5. **Join worker nodes:**
+   ```bash
+   ansible-playbook cluster-setup/playbooks/05-join-workers.yml
+   ```
+
+6. **Verify cluster:**
+   ```bash
+   ansible-playbook cluster-setup/playbooks/06-verify-cluster.yml
+   ```
+
+### Run All Playbooks
+```bash
+ansible-playbook cluster-setup/playbooks/*.yml
+```
+
+### Troubleshooting Ansible
+- **Check inventory:** `ansible all -m ping`
+- **Test specific group:** `ansible masters -m ping`
+- **View logs:** Check `ansible.log` file
+
 ## Security Groups
 
 - **Masters**: SSH (22), Kubernetes API (6443), etcd (2379-2380), kubelet (10250), scheduler/controller-manager (10257, 10259)
