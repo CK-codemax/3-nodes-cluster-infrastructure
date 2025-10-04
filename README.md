@@ -160,7 +160,6 @@ make master                 # Initialize master
 make cni                    # Install CNI
 make workers                # Join workers
 make verify                 # Verify cluster
-make all                    # Run all playbooks
 make setup-infra            # Complete infrastructure setup
 make setup-cluster          # Complete cluster setup
 make cleanup-cluster        # Clean up Kubernetes resources
@@ -281,14 +280,9 @@ For automated cluster setup, you can use the provided Ansible playbooks:
    ansible-playbook cluster-setup/playbooks/06-verify-cluster.yml
    ```
 
-### Run All Playbooks
+### Run Playbooks with Verbose Output
 ```bash
-ansible-playbook cluster-setup/playbooks/*.yml
-```
-
-### Run All Playbooks with Verbose Output
-```bash
-ansible-playbook cluster-setup/playbooks/*.yml -v
+ansible-playbook cluster-setup/playbooks/01-verify-Prerequisites.yml -v
 ```
 
 ### Expected Cluster Status After Setup
@@ -377,19 +371,9 @@ make destroy
    sudo kubeadm reset
    ```
 
-3. **Re-run all playbooks (clean setup):**
-   ```bash
-   ansible-playbook cluster-setup/playbooks/*.yml
-   ```
-
-4. **Check cluster connectivity:**
+3. **Check cluster connectivity:**
    ```bash
    ansible all -m ping
-   ```
-
-5. **View Ansible logs:**
-   ```bash
-   tail -f ansible.log
    ```
 
 
