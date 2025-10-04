@@ -7,6 +7,17 @@
     - name: Gather facts
       ansible.builtin.setup:
 
+    - name: Reset kubeadm (clean previous state)
+      command: kubeadm reset -f
+      register: kubeadm_reset
+      failed_when: false
+      changed_when: false
+      
+    - name: Display kubeadm reset output
+      debug:
+        msg: "{{ kubeadm_reset.stdout_lines }}"
+      when: kubeadm_reset.stdout_lines is defined
+
     - name: Initialize Kubernetes control plane
       command: >
         kubeadm init

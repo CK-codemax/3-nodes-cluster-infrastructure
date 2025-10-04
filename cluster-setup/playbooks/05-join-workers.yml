@@ -6,6 +6,16 @@
   serial: 1
   
   tasks:
+    - name: Reset kubeadm (clean previous state)
+      command: kubeadm reset -f
+      register: kubeadm_reset
+      failed_when: false
+      changed_when: false
+      
+    - name: Display kubeadm reset output
+      debug:
+        msg: "{{ kubeadm_reset.stdout_lines }}"
+      when: kubeadm_reset.stdout_lines is defined
     - name: Copy worker join command from localhost
       copy:
         src: "../join-commands/worker-join-command.sh"
