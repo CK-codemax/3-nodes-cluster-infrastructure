@@ -8,19 +8,20 @@
     - name: Force delete all pods and resources from master
       shell: |
         kubectl delete pods --all --grace-period=0 --force --all-namespaces || true
-        kubectl delete deployments --all --all-namespaces || true
-        kubectl delete services --all --all-namespaces || true
-        kubectl delete configmaps --all --all-namespaces || true
-        kubectl delete secrets --all --all-namespaces || true
-        kubectl delete pv --all || true
-        kubectl delete pvc --all --all-namespaces || true
-        kubectl delete daemonsets --all --all-namespaces || true
-        kubectl delete replicasets --all --all-namespaces || true
-        kubectl delete statefulsets --all --all-namespaces || true
-        kubectl delete jobs --all --all-namespaces || true
-        kubectl delete cronjobs --all --all-namespaces || true
-        kubectl delete networkpolicies --all --all-namespaces || true
-        kubectl delete ingress --all --all-namespaces || true
+        kubectl delete deployments --all --grace-period=0 --force --all-namespaces || true
+        kubectl delete services --all --grace-period=0 --force --all-namespaces || true
+        kubectl delete configmaps --all --grace-period=0 --force --all-namespaces || true
+        kubectl delete secrets --all --grace-period=0 --force --all-namespaces || true
+        kubectl delete pv --all --grace-period=0 --force || true
+        kubectl delete pvc --all --grace-period=0 --force --all-namespaces || true
+        kubectl delete daemonsets --all --grace-period=0 --force --all-namespaces || true
+        kubectl delete replicasets --all --grace-period=0 --force --all-namespaces || true
+        kubectl delete statefulsets --all --grace-period=0 --force --all-namespaces || true
+        kubectl delete jobs --all --grace-period=0 --force --all-namespaces || true
+        kubectl delete cronjobs --all --grace-period=0 --force --all-namespaces || true
+        kubectl delete networkpolicies --all --grace-period=0 --force --all-namespaces || true
+        kubectl delete ingress --all --grace-period=0 --force --all-namespaces || true
+        kubectl delete namespaces --all --grace-period=0 --force || true
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf
       delegate_to: master1
