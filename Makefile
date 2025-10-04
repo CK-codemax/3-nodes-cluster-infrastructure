@@ -1,7 +1,7 @@
 # Makefile for 3-Node Kubernetes Cluster Setup
 # This Makefile automates the entire process from key generation to cluster deployment
 
-.PHONY: help keys init plan apply destroy inventory ping prereq hostnames master cni workers verify all clean setup
+.PHONY: help keys init plan apply destroy inventory ping prereq hostnames master cni workers verify all clean setup-infra setup-cluster cleanup-cluster
 
 # Default target
 help:
@@ -24,12 +24,15 @@ help:
 	@echo "  workers       - Join worker nodes"
 	@echo "  verify        - Verify cluster"
 	@echo "  all           - Run all Ansible playbooks"
-	@echo "  setup         - Complete setup (keys + terraform + ansible)"
+	@echo "  setup-infra   - Complete infrastructure setup (keys + terraform + inventory)"
+	@echo "  setup-cluster - Complete cluster setup (requires updated hosts.yml)"
+	@echo "  cleanup-cluster - Clean up Kubernetes resources from VMs"
 	@echo "  clean         - Clean up generated files"
 	@echo ""
 	@echo "Quick start:"
-	@echo "  make setup    - Run complete setup"
-	@echo "  make clean    - Clean up and start over"
+	@echo "  make setup-infra   - Setup infrastructure first"
+	@echo "  make setup-cluster - Setup cluster (after editing hosts.yml)"
+	@echo "  make clean         - Clean up and start over"
 
 # Generate SSH key pair
 keys:
@@ -94,9 +97,19 @@ all:
 	@ansible-playbook cluster-setup/playbooks/*.yml
 
 # Complete setup process
-setup: keys apply inventory all
+setup-infra: keys apply inventory
 	@echo ""
-	@echo "🎉 Cluster setup complete!"
+	@echo "🎉 Infrastructure setup complete!"
+	@echo ""
+	@echo "Next steps:"
+	@echo "1. Edit cluster-setup/inventory/hosts.yml with actual IP addresses from:"
+	@echo "   terraform output"
+	@echo "2. Run: make setup-cluster"
+	@echo ""
+
+setup-cluster: all
+	@echo ""
+	@echo "🎉 Kubernetes cluster setup complete!"
 	@echo ""
 	@echo "Next steps:"
 	@echo "1. SSH to master: ssh -i k8s-cluster-key ubuntu@\$$(terraform output -raw master_public_ips)"
@@ -104,6 +117,14 @@ setup: keys apply inventory all
 	@echo "3. View pods: kubectl get pods -A"
 	@echo ""
 	@echo "To destroy: make destroy"
+
+# Clean up Kubernetes resources from VMs
+cleanup-cluster:
+	@echo "Cleaning up Kubernetes resources from VMs..."
+	@ansible-playbook cluster-setup/playbooks/07-cleanup-cluster.yml
+	@echo ""
+	@echo "Kubernetes cleanup completed!"
+	@echo "You can now safely run: make destroy"
 
 # Clean up generated files
 clean:

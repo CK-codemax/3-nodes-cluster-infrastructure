@@ -1,6 +1,6 @@
 # 3-Node Kubernetes Infrastructure Setup on AWS
 
-This Terraform configuration creates a simple 3-node infrastructure on AWS for setting up a Kubernetes cluster with kubeadm, perfect for learning the internals of kubernetes.
+This setup creates a 3 node kubernetes cluster using kubeadm on AWS. The process is fully automated using Terraform for provisioning Infrastructure and ansible for automating kubernetes setup.
 
 ## ✅ Cluster Status - WORKING!
 
@@ -43,15 +43,45 @@ This Terraform configuration creates a simple 3-node infrastructure on AWS for s
 
 1. **AWS CLI** configured with appropriate credentials
 2. **Terraform** >= 1.0 installed
-3. **AWS Permissions** for EC2 operations
+3. **Make** utility installed (for automation)
+4. **Ansible** installed (for cluster setup)
+5. **AWS Permissions** for EC2 operations
+
+### Installation Instructions
+
+**macOS:**
+```bash
+# Make is pre-installed
+# Install Ansible
+brew install ansible
+```
+
+**Ubuntu/Debian:**
+```bash
+# Install Make and Ansible
+sudo apt update
+sudo apt install make ansible
+```
+
+**CentOS/RHEL:**
+```bash
+# Install Make and Ansible
+sudo yum install make ansible
+# or for newer versions:
+sudo dnf install make ansible
+```
 
 ## Quick Start with Makefile
 
 The easiest way to set up the entire cluster:
 
 ```bash
-# Complete setup (keys + infrastructure + cluster)
-make setup
+# Complete infrastructure setup (keys + terraform + inventory)
+make setup-infra
+
+# Edit cluster-setup/inventory/hosts.yml with actual IPs from terraform output
+# Then complete cluster setup:
+make setup-cluster
 
 # Or step by step:
 make keys                    # Generate SSH keys
@@ -79,7 +109,9 @@ make cni                    # Install CNI
 make workers                # Join workers
 make verify                 # Verify cluster
 make all                    # Run all playbooks
-make setup                  # Complete setup
+make setup-infra            # Complete infrastructure setup
+make setup-cluster          # Complete cluster setup
+make cleanup-cluster        # Clean up Kubernetes resources
 make clean                  # Clean up files
 make status                 # Check cluster status
 ```
@@ -236,6 +268,33 @@ This setup is perfect for practicing:
 - **Cluster maintenance and upgrades**
 
 ## Cleanup
+
+### Complete Cleanup (Recommended)
+
+To properly clean up everything:
+
+```bash
+# 1. Clean up Kubernetes resources from VMs
+make cleanup-cluster
+
+# 2. Destroy AWS infrastructure
+make destroy
+
+# 3. Clean up local files
+make clean
+```
+
+### What cleanup-cluster does:
+
+1. **Force deletes all Kubernetes resources** (pods, deployments, services, etc.)
+2. **Runs `kubeadm reset -f`** on all nodes to clean up cluster state
+3. **Uninstalls Kubernetes packages** (kubelet, kubeadm, kubectl, containerd)
+4. **Removes repositories and GPG keys** for Docker and Kubernetes
+5. **Cleans up directories** (/etc/kubernetes, /var/lib/kubelet, etc.)
+6. **Resets network settings** (iptables, IPVS, CNI interfaces)
+7. **Removes configuration files** and caches
+
+### Quick Cleanup
 
 To destroy all resources:
 ```bash
