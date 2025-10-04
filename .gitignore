@@ -1,0 +1,49 @@
+# Git ignore file
+# Exclude files that shouldn't be tracked in version control
+
+# SSH Keys (private keys should never be tracked)
+k8s-cluster-key
+*.pem
+*.key
+
+# Terraform state and cache
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+*.tfstate
+*.tfstate.*
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Backup files
+*.bak
+*.backup
+
+# Example files (keep README.md and scripts/)
+*.example
+terraform.tfvars.example

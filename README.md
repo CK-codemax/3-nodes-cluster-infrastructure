@@ -1,4 +1,4 @@
-# 3-Node Kubernetes Infrastructure for CKA/CKS Preparation
+# 3-Node Kubernetes Infrastructure Setup on AWS
 
 This Terraform configuration creates a simple 3-node infrastructure on AWS for setting up a Kubernetes cluster with kubeadm, perfect for learning the internals of kubernetes.
 
