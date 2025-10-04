@@ -2,6 +2,15 @@
 
 This Terraform configuration creates a simple 3-node infrastructure on AWS for setting up a Kubernetes cluster with kubeadm, perfect for learning the internals of kubernetes.
 
+## ✅ Cluster Status - WORKING!
+
+**Successfully tested and verified:**
+- **3 nodes**: master1 (Ready), worker1 (Ready), worker2 (Ready)
+- **All system pods**: Running (etcd, kube-apiserver, kube-controller-manager, kube-scheduler, CoreDNS, Calico)
+- **Test pod**: Successfully executes "Cluster is working!"
+- **API Server**: Accessible and functional
+- **Networking**: Calico CNI working across all nodes
+
 ## What This Creates
 
 - **1 Master Node** (control plane)
@@ -36,32 +45,44 @@ This Terraform configuration creates a simple 3-node infrastructure on AWS for s
 2. **Terraform** >= 1.0 installed
 3. **AWS Permissions** for EC2 operations
 
-## Quick Start
+## Quick Start with Makefile
 
-1. **Generate SSH key pair:**
-   ```bash
-   ./scripts/generate-keys.sh
-   ```
+The easiest way to set up the entire cluster:
 
-2. **Initialize Terraform:**
-   ```bash
-   terraform init
-   ```
+```bash
+# Complete setup (keys + infrastructure + cluster)
+make setup
 
-3. **Plan the deployment:**
-   ```bash
-   terraform plan
-   ```
+# Or step by step:
+make keys                    # Generate SSH keys
+make apply                   # Create infrastructure
+make inventory              # Create inventory file
+# Edit cluster-setup/inventory/hosts.yml with actual IPs
+make all                    # Deploy Kubernetes cluster
+```
 
-4. **Apply the configuration:**
-   ```bash
-   terraform apply
-   ```
+### Available Makefile Targets
 
-5. **Get instance information:**
-   ```bash
-   terraform output
-   ```
+```bash
+make help                   # Show all available commands
+make keys                   # Generate SSH key pair
+make init                   # Initialize Terraform
+make plan                   # Plan deployment
+make apply                  # Create infrastructure
+make destroy                # Destroy infrastructure
+make inventory              # Create inventory file
+make ping                   # Test connectivity
+make prereq                 # Run prerequisites
+make hostnames              # Configure hostnames
+make master                 # Initialize master
+make cni                    # Install CNI
+make workers                # Join workers
+make verify                 # Verify cluster
+make all                    # Run all playbooks
+make setup                  # Complete setup
+make clean                  # Clean up files
+make status                 # Check cluster status
+```
 
 ## Configuration
 
@@ -181,6 +202,18 @@ For automated cluster setup, you can use the provided Ansible playbooks:
 ansible-playbook cluster-setup/playbooks/*.yml
 ```
 
+### Run All Playbooks with Verbose Output
+```bash
+ansible-playbook cluster-setup/playbooks/*.yml -v
+```
+
+### Expected Cluster Status After Setup
+After running all playbooks, you should see:
+- **3 nodes**: master1 (Ready), worker1 (Ready), worker2 (Ready)
+- **All system pods**: Running (etcd, kube-apiserver, kube-controller-manager, kube-scheduler, CoreDNS, Calico)
+- **Test pod**: Successfully executes "Cluster is working!"
+- **API Server**: Accessible at `https://<master-ip>:6443`
+
 ### Troubleshooting Ansible
 - **Check inventory:** `ansible all -m ping`
 - **Test specific group:** `ansible masters -m ping`
@@ -210,6 +243,7 @@ terraform destroy
 ```
 
 ## Troubleshooting
+
 1. **Check Kubernetes status:**
    ```bash
    kubectl get nodes
@@ -219,6 +253,21 @@ terraform destroy
 2. **Reset kubeadm (if needed):**
    ```bash
    sudo kubeadm reset
+   ```
+
+3. **Re-run all playbooks (clean setup):**
+   ```bash
+   ansible-playbook cluster-setup/playbooks/*.yml
+   ```
+
+4. **Check cluster connectivity:**
+   ```bash
+   ansible all -m ping
+   ```
+
+5. **View Ansible logs:**
+   ```bash
+   tail -f ansible.log
    ```
 
 

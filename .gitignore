@@ -3,8 +3,13 @@
 
 # SSH Keys (private keys should never be tracked)
 k8s-cluster-key
+k8s-cluster-key.pub
 *.pem
 *.key
+*.rsa
+*.dsa
+*.ecdsa
+*.ed25519
 
 # Terraform state and cache
 .terraform/
