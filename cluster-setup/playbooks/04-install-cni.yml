@@ -1,0 +1,17 @@
+---
+- name: Apply Calico CNI
+  hosts: master1
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Apply Calico CNI
+      shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+      register: calico_apply
+
+    - name: Display Calico installation output
+      debug:
+        var: calico_apply.stdout_lines
+
