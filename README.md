@@ -76,11 +76,11 @@ sudo dnf install make ansible
 The easiest way to set up the entire cluster:
 
 ```bash
-# Complete infrastructure setup (keys + terraform + inventory)
+# Step 1: Complete infrastructure setup (keys + terraform + inventory)
 make setup-infra
 
-# Edit cluster-setup/inventory/hosts.yml with actual IPs from terraform output
-# Then complete cluster setup:
+# Step 2: Edit cluster-setup/inventory/hosts.yml with actual IPs from terraform output
+# Step 3: Complete cluster setup
 make setup-cluster
 
 # Or step by step:
@@ -89,6 +89,58 @@ make apply                   # Create infrastructure
 make inventory              # Create inventory file
 # Edit cluster-setup/inventory/hosts.yml with actual IPs
 make all                    # Deploy Kubernetes cluster
+```
+
+## Complete Setup Workflow
+
+### 1. Infrastructure Setup
+```bash
+make setup-infra
+```
+**What this does:**
+- Generates SSH key pair (`k8s-cluster-key`)
+- Initializes Terraform
+- Creates AWS infrastructure (3 EC2 instances)
+- Creates Ansible inventory template (`hosts-template.yml`)
+
+**Next step:** Edit `cluster-setup/inventory/hosts.yml` with actual IP addresses from `terraform output`
+
+### 2. Cluster Setup
+```bash
+make setup-cluster
+```
+**What this does:**
+- Runs all Ansible playbooks to deploy Kubernetes
+- Verifies prerequisites
+- Configures hostnames
+- Initializes master node
+- Installs CNI (Calico)
+- Joins worker nodes
+- Verifies cluster is working
+
+### 3. Cluster Cleanup (when done)
+```bash
+make cleanup-cluster
+```
+**What this does:**
+- Force deletes all Kubernetes resources
+- Runs `kubeadm reset -f` on all nodes
+- Uninstalls Kubernetes packages
+- Removes repositories and GPG keys
+- Cleans up directories and network settings
+- Resets configuration files
+
+### 4. Complete Cleanup
+```bash
+make clean
+```
+**What this does:**
+- First runs `cleanup-cluster` (see above)
+- Then removes local files (SSH keys, inventory, logs, terraform files)
+
+**Follow with:**
+```bash
+make destroy  # Destroy AWS infrastructure
 ```
 
 ### Available Makefile Targets
@@ -267,39 +319,50 @@ This setup is perfect for practicing:
 - **Persistent volumes and storage**
 - **Cluster maintenance and upgrades**
 
-## Cleanup
+## Cleanup Workflow
 
 ### Complete Cleanup (Recommended)
 
 To properly clean up everything:
 
 ```bash
-# 1. Clean up Kubernetes resources from VMs
-make cleanup-cluster
+# 1. Clean up Kubernetes resources from VMs + local files
+make clean
 
 # 2. Destroy AWS infrastructure
 make destroy
-
-# 3. Clean up local files
-make clean
 ```
 
-### What cleanup-cluster does:
+### Individual Cleanup Steps
 
-1. **Force deletes all Kubernetes resources** (pods, deployments, services, etc.)
-2. **Runs `kubeadm reset -f`** on all nodes to clean up cluster state
-3. **Uninstalls Kubernetes packages** (kubelet, kubeadm, kubectl, containerd)
-4. **Removes repositories and GPG keys** for Docker and Kubernetes
-5. **Cleans up directories** (/etc/kubernetes, /var/lib/kubelet, etc.)
-6. **Resets network settings** (iptables, IPVS, CNI interfaces)
-7. **Removes configuration files** and caches
-
-### Quick Cleanup
-
-To destroy all resources:
 ```bash
-terraform destroy
+# Clean up Kubernetes resources from VMs only
+make cleanup-cluster
+
+# Clean up local files only (SSH keys, inventory, logs, terraform files)
+make clean
+
+# Destroy AWS infrastructure only
+make destroy
 ```
+
+### What Each Cleanup Command Does:
+
+**`make cleanup-cluster`:**
+1. Force deletes all Kubernetes resources (pods, deployments, services, etc.)
+2. Runs `kubeadm reset -f` on all nodes to clean up cluster state
+3. Uninstalls Kubernetes packages (kubelet, kubeadm, kubectl, containerd)
+4. Removes repositories and GPG keys for Docker and Kubernetes
+5. Cleans up directories (/etc/kubernetes, /var/lib/kubelet, etc.)
+6. Resets network settings (iptables, IPVS, CNI interfaces)
+7. Removes configuration files and caches
+
+**`make clean`:**
+- First runs `cleanup-cluster` (see above)
+- Then removes local files (SSH keys, inventory, logs, terraform files)
+
+**`make destroy`:**
+- Destroys all AWS infrastructure (EC2 instances, security groups, key pairs)
 
 ## Troubleshooting
 

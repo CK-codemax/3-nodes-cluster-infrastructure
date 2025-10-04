@@ -94,7 +94,12 @@ verify:
 
 all:
 	@echo "Running all Ansible playbooks..."
-	@ansible-playbook cluster-setup/playbooks/*.yml
+	@ansible-playbook cluster-setup/playbooks/01-verify-prerequisites.yml
+	@ansible-playbook cluster-setup/playbooks/02-configure-hostnames.yml
+	@ansible-playbook cluster-setup/playbooks/03-initi-master.yml
+	@ansible-playbook cluster-setup/playbooks/04-install-cni.yml
+	@ansible-playbook cluster-setup/playbooks/05-join-workers.yml
+	@ansible-playbook cluster-setup/playbooks/06-verify-cluster.yml
 
 # Complete setup process
 setup-infra: keys apply inventory
@@ -127,7 +132,7 @@ cleanup-cluster:
 	@echo "You can now safely run: make destroy"
 
 # Clean up generated files
-clean:
+clean: cleanup-cluster
 	@echo "Cleaning up generated files..."
 	@rm -f k8s-cluster-key k8s-cluster-key.pub
 	@rm -f cluster-setup/inventory/hosts.yml
