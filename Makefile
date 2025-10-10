@@ -1,7 +1,7 @@
 # Makefile for 3-Node Kubernetes Cluster Setup
 # This Makefile automates the entire process from key generation to cluster deployment
 
-.PHONY: help keys init plan apply destroy inventory ping prereq hostnames master cni workers verify all clean setup-infra setup-cluster cleanup-cluster
+.PHONY: help keys init plan apply destroy inventory ping prereq hostnames master cni workers verify all clean setup-infra setup-cluster cleanup-cluster cleanup-cluster-fast
 
 # Default target
 help:
@@ -26,7 +26,8 @@ help:
 	@echo "  all           - Run all Ansible playbooks"
 	@echo "  setup-infra   - Complete infrastructure setup (keys + terraform + inventory)"
 	@echo "  setup-cluster - Complete cluster setup (requires updated hosts.yml)"
-	@echo "  cleanup-cluster - Clean up Kubernetes resources from VMs"
+	@echo "  cleanup-cluster - Clean up Kubernetes resources from VMs (thorough but slow)"
+	@echo "  cleanup-cluster-fast - Quick cleanup of Kubernetes resources (fast)"
 	@echo "  clean         - Clean up generated files"
 	@echo ""
 	@echo "Quick start:"
@@ -123,13 +124,22 @@ setup-cluster: all
 	@echo ""
 	@echo "To destroy: make destroy"
 
-# Clean up Kubernetes resources from VMs
+# Clean up Kubernetes resources from VMs (thorough but slow)
 cleanup-cluster:
-	@echo "Cleaning up Kubernetes resources from VMs..."
+	@echo "Cleaning up Kubernetes resources from VMs (thorough cleanup)..."
 	@ansible-playbook cluster-setup/playbooks/07-cleanup-cluster.yml
 	@echo ""
 	@echo "Kubernetes cleanup completed!"
 	@echo "You can now safely run: make destroy"
+
+# Quick cleanup of Kubernetes resources (fast)
+cleanup-cluster-fast:
+	@echo "Quick cleanup of Kubernetes resources..."
+	@echo "Running kubeadm reset on all nodes..."
+	@ansible all -m shell -a "kubeadm reset -f" --become
+	@echo ""
+	@echo "Quick cleanup completed!"
+	@echo "Note: This is a fast cleanup. For thorough cleanup, use: make cleanup-cluster"
 
 # Clean up generated files
 clean: cleanup-cluster
