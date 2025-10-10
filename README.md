@@ -280,10 +280,25 @@ For automated cluster setup, you can use the provided Ansible playbooks:
    ansible-playbook cluster-setup/playbooks/06-verify-cluster.yml
    ```
 
+7. **Setup kubectl autocomplete and alias 'k':**
+   ```bash
+   ansible-playbook cluster-setup/playbooks/07-setup-kubectl-autocomplete.yml
+   ```
+
 ### Run Playbooks with Verbose Output
 ```bash
 ansible-playbook cluster-setup/playbooks/01-verify-Prerequisites.yml -v
 ```
+
+### What Each Playbook Does
+
+**07-setup-kubectl-autocomplete.yml:**
+- Sets up kubectl bash completion for tab autocomplete
+- Creates alias `k` for `kubectl` command
+- Adds completion support for the `k` alias
+- Configures `.bashrc` for persistent settings
+- **Runs on:** Master nodes only
+- **Benefit:** Faster kubectl commands with `k get pods` instead of `kubectl get pods`
 
 ### Expected Cluster Status After Setup
 After running all playbooks, you should see:
@@ -330,11 +345,8 @@ make destroy
 ### Individual Cleanup Steps
 
 ```bash
-# Clean up Kubernetes resources from VMs only (thorough but slow)
+# Clean up Kubernetes resources from VMs only (fast)
 make cleanup-cluster
-
-# Quick cleanup of Kubernetes resources (fast - just kubeadm reset)
-make cleanup-cluster-fast
 
 # Clean up local files only (SSH keys, inventory, logs, terraform files)
 make clean
@@ -345,37 +357,10 @@ make destroy
 
 ### What Each Cleanup Command Does:
 
-**`make cleanup-cluster` (Thorough but Slow - 5-10 minutes):**
-1. Force deletes all Kubernetes resources (pods, deployments, services, etc.)
-2. Runs `kubeadm reset -f` on all nodes to clean up cluster state
-3. Uninstalls Kubernetes packages (kubelet, kubeadm, kubectl, containerd)
-4. Removes repositories and GPG keys for Docker and Kubernetes
-5. Cleans up directories (/etc/kubernetes, /var/lib/kubelet, etc.)
-6. Resets network settings (iptables, IPVS, CNI interfaces)
-7. Removes configuration files and caches
-
-**`make cleanup-cluster-fast` (Fast - 30 seconds):**
-1. Runs `kubeadm reset -f` on all nodes only
-2. Leaves packages and configurations intact
-3. Perfect for quick testing cycles
-4. Use when you need to quickly reset cluster state
-
-### When to Use Each Cleanup Method:
-
-- **Use `make cleanup-cluster-fast`** for:
-  - Quick testing cycles
-  - Resetting cluster state between experiments
-  - When you want to keep the infrastructure but reset Kubernetes
-
-- **Use `make cleanup-cluster`** for:
-  - Complete cleanup before destroying infrastructure
-  - Removing all Kubernetes packages and configurations
-  - When you want a clean slate for the next deployment
-
-- **Use `make clean`** for:
-  - Complete cleanup including local files
-  - Before running `make destroy`
-  - Starting completely fresh
+**`make cleanup-cluster` (Fast - 30 seconds):**
+1. Runs `kubeadm reset -f` on all nodes
+2. Quickly resets cluster state
+3. Perfect for testing cycles and quick resets
 
 **`make clean`:**
 - First runs `cleanup-cluster` (see above)
