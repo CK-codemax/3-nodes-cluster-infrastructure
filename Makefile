@@ -56,6 +56,10 @@ apply: init
 destroy:
 	@echo "Destroying infrastructure..."
 	@terraform destroy -auto-approve
+	@echo "Cleaning up terraform files..."
+	@rm -rf .terraform
+	@rm -f terraform.tfstate*
+	@echo "Infrastructure destroyed and terraform files cleaned up!"
 
 # Create inventory file from Terraform output
 inventory:
@@ -138,15 +142,13 @@ cleanup-cluster:
 	@echo "Kubernetes cleanup completed!"
 	@echo "You can now safely run: make destroy"
 
-# Clean up generated files
+# Clean up generated files (keeps terraform files for destroy)
 clean: cleanup-cluster
 	@echo "Cleaning up generated files..."
 	@rm -f k8s-cluster-key k8s-cluster-key.pub
 	@rm -f cluster-setup/inventory/hosts.yml
 	@rm -f ansible.log
-	@rm -rf .terraform
-	@rm -f terraform.tfstate*
-	@echo "Cleanup complete!"
+	@echo "Cleanup complete! (Terraform files preserved for 'make destroy')"
 
 # Development helpers
 dev-setup: keys init

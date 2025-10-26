@@ -58,6 +58,30 @@ resource "aws_security_group" "masters" {
     self        = true
   }
 
+  # Pod-to-pod communication: Allow all traffic from nodes in same security group
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    self        = true
+  }
+
+  # Pod-to-pod communication: Allow all traffic from Calico Pod CIDR (192.168.0.0/16)
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["192.168.0.0/16"]
+  }
+
+  # Pod-to-pod communication: Allow all traffic from default VPC (172.31.0.0/16)
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["172.31.0.0/16"]
+  }
+
   # All outbound traffic
   egress {
     from_port   = 0
@@ -116,6 +140,30 @@ resource "aws_security_group" "workers" {
     to_port         = 0
     protocol        = "-1"
     security_groups = [aws_security_group.masters.id]
+  }
+
+  # Pod-to-pod communication: Allow all traffic from nodes in same security group
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    self        = true
+  }
+
+  # Pod-to-pod communication: Allow all traffic from Calico Pod CIDR (192.168.0.0/16)
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["192.168.0.0/16"]
+  }
+
+  # Pod-to-pod communication: Allow all traffic from default VPC (172.31.0.0/16)
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["172.31.0.0/16"]
   }
 
   # All outbound traffic

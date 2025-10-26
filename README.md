@@ -345,13 +345,13 @@ make destroy
 ### Individual Cleanup Steps
 
 ```bash
-# Clean up Kubernetes resources from VMs only (fast)
+# Clean up Kubernetes resources from VMs only (fast - keeps infrastructure)
 make cleanup-cluster
 
-# Clean up local files only (SSH keys, inventory, logs, terraform files)
+# Clean up local files only (SSH keys, inventory, logs, terraform files - keeps infrastructure)
 make clean
 
-# Destroy AWS infrastructure only
+# Destroy AWS infrastructure (deletes everything)
 make destroy
 ```
 
@@ -360,14 +360,19 @@ make destroy
 **`make cleanup-cluster` (Fast - 30 seconds):**
 1. Runs `kubeadm reset -f` on all nodes
 2. Quickly resets cluster state
-3. Perfect for testing cycles and quick resets
+3. **Keeps infrastructure running** - only resets Kubernetes
+4. Perfect for testing cycles and quick resets
 
 **`make clean`:**
-- First runs `cleanup-cluster` (see above)
-- Then removes local files (SSH keys, inventory, logs, terraform files)
+1. First runs `cleanup-cluster` (see above)
+2. Then removes local files (SSH keys, inventory, logs)
+3. **Keeps terraform files** - so you can still run `make destroy`
+4. **Keeps infrastructure running** - only cleans up local files
 
 **`make destroy`:**
-- Destroys all AWS infrastructure (EC2 instances, security groups, key pairs)
+1. **Destroys all AWS infrastructure** (EC2 instances, security groups, key pairs)
+2. **Cleans up terraform files** (.terraform/, terraform.tfstate*)
+3. **Only command that actually deletes infrastructure**
 
 ## Troubleshooting
 
