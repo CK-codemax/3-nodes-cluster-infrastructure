@@ -1,0 +1,76 @@
+---
+- name: Create ClusterIssuer for Let's Encrypt
+  hosts: master1
+  become: true
+  gather_facts: true
+  vars_files:
+    - ../vars/main.yml
+
+  tasks:
+    - name: Get Terraform outputs
+      shell: |
+        cd {{ terraform_dir }} && terraform output -json
+      register: terraform_outputs_json
+      changed_when: false
+      failed_when: false
+      delegate_to: localhost
+
+    - name: Parse Terraform outputs
+      set_fact:
+        terraform_outputs: "{{ terraform_outputs_json.stdout | from_json }}"
+
+    - name: Set Terraform variables from outputs
+      set_fact:
+        terraform_cert_manager_email: "{{ terraform_outputs.cert_manager_email.value }}"
+
+    - name: Create ClusterIssuer manifest for Let's Encrypt Production
+      shell: |
+        cat <<EOF | kubectl apply -f -
+        apiVersion: cert-manager.io/v1
+        kind: ClusterIssuer
+        metadata:
+          name: {{ cert_manager_cluster_issuer_name }}
+        spec:
+          acme:
+            email: {{ terraform_cert_manager_email }}
+            server: https://acme-v02.api.letsencrypt.org/directory
+            privateKeySecretRef:
+              name: {{ cert_manager_cluster_issuer_name }}-cluster-issuer
+            solvers:
+            - http01:
+                ingress:
+                  ingressClassName: {{ nginx_ingress_release_name }}
+        EOF
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: clusterissuer_create
+      changed_when: "'created' in clusterissuer_create.stdout or 'configured' in clusterissuer_create.stdout"
+
+    - name: Verify ClusterIssuer is created
+      shell: |
+        kubectl get clusterissuer {{ cert_manager_cluster_issuer_name }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: clusterissuer_status
+      changed_when: false
+      failed_when: false
+
+    - name: Show ClusterIssuer status
+      debug:
+        var: clusterissuer_status.stdout_lines
+      when: clusterissuer_status.rc == 0
+
+    - name: Display ClusterIssuer details
+      shell: |
+        kubectl describe clusterissuer {{ cert_manager_cluster_issuer_name }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: clusterissuer_details
+      changed_when: false
+      failed_when: false
+
+    - name: Show ClusterIssuer details
+      debug:
+        var: clusterissuer_details.stdout_lines
+      when: clusterissuer_details.rc == 0
+

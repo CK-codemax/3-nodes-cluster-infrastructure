@@ -2,28 +2,39 @@
 resource "aws_security_group" "masters" {
   name_prefix = "${var.cluster_name}-masters-"
 
-  # HTTP
+  # HTTP/HTTPS - Only allow from VPC (Load Balancers will route through VPC)
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["172.31.0.0/16"]
+    description = "HTTP access from VPC (Load Balancers)"
   }
 
-  # SSH access
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["172.31.0.0/16"]
+    description = "HTTPS access from VPC (Load Balancers)"
+  }
+
+  # SSH access (for management)
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "SSH access for management"
   }
 
-  # Kubernetes API server (kubeadm)
+  # Kubernetes API server (kubeadm) - for management
   ingress {
     from_port   = 6443
     to_port     = 6443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Kubernetes API server access"
   }
 
   # etcd client API (kubeadm HA)
@@ -102,36 +113,56 @@ resource "aws_security_group" "masters" {
 resource "aws_security_group" "workers" {
   name_prefix = "${var.cluster_name}-workers-"
 
-  # HTTP
+  # HTTP/HTTPS - Only allow from VPC (Load Balancers will route through VPC)
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["172.31.0.0/16"]
+    description = "HTTP access from VPC (Load Balancers)"
   }
 
-  # SSH access
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["172.31.0.0/16"]
+    description = "HTTPS access from VPC (Load Balancers)"
+  }
+
+  # SSH access (for management)
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "SSH access for management"
   }
 
-  # Kubelet API
+  # Kubelet API - Only from masters
   ingress {
-    from_port   = 10250
-    to_port     = 10250
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port       = 10250
+    to_port         = 10250
+    protocol        = "tcp"
+    security_groups = [aws_security_group.masters.id]
+    description     = "Kubelet API access from masters"
   }
 
-  # NodePort services (kubeadm)
+  # NodePort services - Only allow from VPC (Load Balancers), not from internet
   ingress {
     from_port   = 30000
     to_port     = 32767
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["172.31.0.0/16"]
+    description = "NodePort access from VPC (Load Balancers)"
+  }
+
+  ingress {
+    from_port   = 30000
+    to_port     = 32767
+    protocol    = "udp"
+    cidr_blocks = ["172.31.0.0/16"]
+    description = "NodePort UDP access from VPC (Load Balancers)"
   }
 
   # All traffic from masters
