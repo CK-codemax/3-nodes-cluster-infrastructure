@@ -123,7 +123,7 @@ deploy-s3:
 
 migrate-s3-backend:
 	@echo "$(GREEN)Migrating S3 backend state...$(NC)"
-	@cd $(S3_DIR) && echo "yes" | terraform init -input=false -migrate-state -backend-config=../../$(STATE_CONFIG)
+	@cd $(S3_DIR) && echo "yes" | terraform init -migrate-state -backend-config=../../$(STATE_CONFIG)
 	@echo "$(GREEN)✓ S3 backend state migrated$(NC)"
 
 plan-s3:
