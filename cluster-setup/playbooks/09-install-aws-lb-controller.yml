@@ -52,7 +52,6 @@
         terraform_cluster_name: "{{ terraform_outputs.cluster_name.value }}"
         terraform_env_name: "{{ terraform_outputs.environment.value }}"
         terraform_vpc_id: "{{ terraform_outputs.vpc_id.value }}"
-        terraform_aws_lbc_role_arn: "{{ terraform_outputs.aws_lbc_role_arn.value }}"
 
     - name: Remove IRSA annotation (not needed for self-managed clusters using instance profiles)
       shell: |
@@ -65,50 +64,27 @@
       register: sa_annotate_remove
       changed_when: sa_annotate_remove.rc == 0
       failed_when: false
-      when: terraform_aws_lbc_role_arn is defined and terraform_aws_lbc_role_arn | length > 0
 
-    - name: Get worker1 node name by hostname pattern
-      shell: |
-        kubectl get nodes -o json | jq -r '.items[] | select(.metadata.name | contains("worker-1")) | .metadata.name'
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      register: worker1_node_name
-      changed_when: false
+    - name: Create Helm values file with node affinity for AWS Load Balancer Controller
+      copy:
+        content: |
+          nodeSelector:
+            aws-workloads: enabled
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: aws-workloads
+                    operator: In
+                    values:
+                    - enabled
+        dest: /tmp/aws-lbc-values.yaml
+      register: values_file_create
 
-    - name: Display worker1 node name
+    - name: Display values file location
       debug:
-        msg: "Found worker1 node: {{ worker1_node_name.stdout }}"
-      when: worker1_node_name.stdout != ""
-
-    - name: Label worker1 node for AWS workloads
-      shell: |
-        kubectl label node {{ worker1_node_name.stdout }} aws-workloads=enabled --overwrite
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      register: node_label
-      changed_when: "'labeled' in node_label.stdout or 'already labeled' in node_label.stderr"
-      failed_when: node_label.rc != 0 and 'already labeled' not in node_label.stderr
-      when: worker1_node_name.stdout != ""
-
-    - name: Verify worker1 node label was applied
-      shell: |
-        kubectl get node {{ worker1_node_name.stdout }} --show-labels | grep -q "aws-workloads=enabled"
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      register: label_check
-      changed_when: false
-      failed_when: label_check.rc != 0
-      when: worker1_node_name.stdout != ""
-
-    - name: Verify values file exists
-      stat:
-        path: /tmp/aws-lbc-values.yaml
-      register: values_file_stat
-
-    - name: Display values file status
-      debug:
-        msg: "Values file exists: {{ values_file_stat.stat.exists }}"
-      when: values_file_stat.stat.exists
+        msg: "Values file created at {{ values_file_create.dest }}"
 
     - name: Install AWS Load Balancer Controller using Helm
       shell: |
