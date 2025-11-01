@@ -8,13 +8,13 @@ resource "aws_security_group" "masters" {
   name_prefix = "${var.cluster_name}-masters-"
   vpc_id      = data.aws_vpc.main.id
 
-  # HTTP/HTTPS - Only allow from VPC (Load Balancers will route through VPC)
+  # HTTP/HTTPS - Allow from VPC (NLB traffic comes from VPC, pod-to-pod already enabled)
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = [local.vpc_cidr]
-    description = "HTTP access from VPC (Load Balancers)"
+    description = "HTTP access from VPC (NLB and pod-to-pod communication)"
   }
 
   ingress {
@@ -22,7 +22,7 @@ resource "aws_security_group" "masters" {
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = [local.vpc_cidr]
-    description = "HTTPS access from VPC (Load Balancers)"
+    description = "HTTPS access from VPC (NLB and pod-to-pod communication)"
   }
 
   # SSH access (for management)
@@ -120,13 +120,13 @@ resource "aws_security_group" "workers" {
   name_prefix = "${var.cluster_name}-workers-"
   vpc_id      = data.aws_vpc.main.id
 
-  # HTTP/HTTPS - Only allow from VPC (Load Balancers will route through VPC)
+  # HTTP/HTTPS - Allow from VPC (NLB traffic comes from VPC, pod-to-pod already enabled)
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = [local.vpc_cidr]
-    description = "HTTP access from VPC (Load Balancers)"
+    description = "HTTP access from VPC (NLB and pod-to-pod communication)"
   }
 
   ingress {
@@ -134,7 +134,7 @@ resource "aws_security_group" "workers" {
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = [local.vpc_cidr]
-    description = "HTTPS access from VPC (Load Balancers)"
+    description = "HTTPS access from VPC (NLB and pod-to-pod communication)"
   }
 
   # SSH access (for management)
