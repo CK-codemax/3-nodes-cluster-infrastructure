@@ -2,7 +2,7 @@
 # Metrics Server Helm chart values
 # This configures metrics-server to work with self-managed Kubernetes clusters
 
-# Container arguments
+# Override default args completely
 args:
   - --cert-dir=/tmp
   - --secure-port=4443
@@ -11,11 +11,11 @@ args:
   - --metric-resolution=15s
   - --kubelet-insecure-tls
 
-# Ensure probes use the correct port
+# Ensure probes use the correct port (explicit port number instead of named port)
 livenessProbe:
   httpGet:
     path: /livez
-    port: https
+    port: 4443
     scheme: HTTPS
   failureThreshold: 3
   periodSeconds: 10
@@ -23,7 +23,7 @@ livenessProbe:
 readinessProbe:
   httpGet:
     path: /readyz
-    port: https
+    port: 4443
     scheme: HTTPS
   failureThreshold: 3
   periodSeconds: 10
