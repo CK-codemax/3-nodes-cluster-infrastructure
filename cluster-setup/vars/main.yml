@@ -95,5 +95,4 @@ etcd_backup_instance_profile_name: "{{ terraform_etcd_backup_instance_profile_na
 # AWS Workloads Instance Profile Configuration
 aws_workloads_instance_profile_name: "{{ terraform_aws_workloads_instance_profile_name | default('') }}"
 aws_workloads_instance_profile_arn: "{{ terraform_aws_workloads_instance_profile_arn | default('') }}"
-worker1_private_ip: "{{ terraform_worker1_private_ip | default('') }}"
 

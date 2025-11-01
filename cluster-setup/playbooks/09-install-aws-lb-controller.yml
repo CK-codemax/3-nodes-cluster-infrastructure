@@ -53,7 +53,6 @@
         terraform_env_name: "{{ terraform_outputs.environment.value }}"
         terraform_vpc_id: "{{ terraform_outputs.vpc_id.value }}"
         terraform_aws_lbc_role_arn: "{{ terraform_outputs.aws_lbc_role_arn.value }}"
-        terraform_worker1_private_ip: "{{ terraform_outputs.worker1_private_ip.value }}"
 
     - name: Remove IRSA annotation (not needed for self-managed clusters using instance profiles)
       shell: |
@@ -68,9 +67,9 @@
       failed_when: false
       when: terraform_aws_lbc_role_arn is defined and terraform_aws_lbc_role_arn | length > 0
 
-    - name: Get worker1 node name by private IP
+    - name: Get worker1 node name by hostname pattern
       shell: |
-        kubectl get nodes -o json | jq -r '.items[] | select(.status.addresses[]?.address=="{{ terraform_worker1_private_ip }}") | .metadata.name'
+        kubectl get nodes -o json | jq -r '.items[] | select(.metadata.name | contains("worker-1")) | .metadata.name'
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: worker1_node_name
