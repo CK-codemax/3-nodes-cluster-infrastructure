@@ -11,3 +11,20 @@ args:
   - --metric-resolution=15s
   - --kubelet-insecure-tls
 
+# Ensure probes use the correct port
+livenessProbe:
+  httpGet:
+    path: /livez
+    port: https
+    scheme: HTTPS
+  failureThreshold: 3
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: https
+    scheme: HTTPS
+  failureThreshold: 3
+  periodSeconds: 10
+  initialDelaySeconds: 20
