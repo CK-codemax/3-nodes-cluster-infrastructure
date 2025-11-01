@@ -14,3 +14,14 @@ controller:
       service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout: "6"
       service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: "2"
       service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold: "3"
+  nodeSelector:
+    aws-workloads: enabled
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: aws-workloads
+            operator: In
+            values:
+            - enabled
