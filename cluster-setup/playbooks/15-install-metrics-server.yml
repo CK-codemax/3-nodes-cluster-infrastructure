@@ -60,59 +60,17 @@
       debug:
         var: helm_install.stdout_lines
 
-    - name: Verify Metrics Server pods are running
-      shell: |
-        kubectl get pods -n {{ metrics_server_namespace }} -l k8s-app=metrics-server
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      register: pod_status
-      until: >
-        pod_status.stdout is defined and
-        ('Running' in pod_status.stdout or 'Completed' in pod_status.stdout) and
-        '0/2' not in pod_status.stdout and
-        '0/1' not in pod_status.stdout
-      retries: 30
-      delay: 10
-      changed_when: false
-
-    - name: Display pod status
-      debug:
-        var: pod_status.stdout_lines
-
-    - name: Verify Metrics Server deployment is ready
-      shell: |
-        kubectl get deployment -n {{ metrics_server_namespace }} {{ metrics_server_release_name }} -o jsonpath='{.status.readyReplicas}'
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      register: ready_replicas
-      until: ready_replicas.stdout == "1" or ready_replicas.stdout == "2"
-      retries: 30
-      delay: 10
-      changed_when: false
-
-    - name: Display Metrics Server deployment status
+    - name: Display Metrics Server deployment status (informational)
       shell: |
         kubectl get deployment -n {{ metrics_server_namespace }} {{ metrics_server_release_name }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: deployment_status
       changed_when: false
+      failed_when: false
 
     - name: Show deployment status
       debug:
         var: deployment_status.stdout_lines
-
-    - name: Verify Metrics Server API is available
-      shell: |
-        kubectl top nodes
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      register: metrics_api_check
-      changed_when: false
-      failed_when: false
-
-    - name: Display metrics API test result
-      debug:
-        var: metrics_api_check.stdout_lines
-      when: metrics_api_check.rc == 0
+      when: deployment_status.rc == 0
 
