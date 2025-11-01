@@ -74,7 +74,6 @@
                       values:
                       - enabled
         dest: /tmp/ebs-csi-values.yaml
-      delegate_to: localhost
 
     - name: Install AWS EBS CSI Driver using Helm
       shell: |

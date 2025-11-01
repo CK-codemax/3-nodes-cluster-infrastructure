@@ -83,7 +83,6 @@
                       values:
                       - enabled
         dest: /tmp/efs-csi-values.yaml
-      delegate_to: localhost
 
     - name: Install AWS EFS CSI Driver using Helm
       shell: |
