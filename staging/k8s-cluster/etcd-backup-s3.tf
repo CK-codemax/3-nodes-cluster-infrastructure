@@ -51,6 +51,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "etcd_backup" {
     id     = "delete-old-backups"
     status = "Enabled"
 
+    filter {}
+
     expiration {
       days = var.etcd_backup_retention_days
     }

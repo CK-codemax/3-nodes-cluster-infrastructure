@@ -1,4 +1,5 @@
 region = "us-east-1"
+aws_region = "us-east-1"
 env = "dev"
 
 # Cluster Name (used for all infrastructure)
