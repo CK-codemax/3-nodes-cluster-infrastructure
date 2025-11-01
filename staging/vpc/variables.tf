@@ -34,7 +34,7 @@ variable "public_subnet2_cidr" {
   description = "CIDR range for the public subnet."
 }
 
-variable "eks_cluster_name" {
+variable "cluster_name" {
   description = "Name of the Amazon EKS cluster."
 }
 

@@ -1,9 +1,8 @@
 region = "us-east-1"
-environment = "dev"
+env = "dev"
 
 # Cluster Name (used for all infrastructure)
 cluster_name = "3-nodes-k8s-cluster"
-eks_cluster_name = "3-nodes-k8s-cluster"
 
 # Availability Zones (used for all infrastructure)
 az1 = "us-east-1a"
