@@ -154,6 +154,16 @@ deploy-k8s-cluster:
 		terraform apply -input=false -auto-approve tfplan && \
 		rm -f tfplan
 	@echo "$(GREEN)✓ Kubernetes cluster infrastructure deployed successfully$(NC)"
+	@echo ""
+	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(YELLOW)IMPORTANT: Update Ansible variables$(NC)"
+	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(BLUE)Ansible playbooks will automatically fetch Terraform outputs at runtime.$(NC)"
+	@echo "$(BLUE)However, you can manually update cluster-setup/vars/main.yml if needed.$(NC)"
+	@echo ""
+	@echo "$(BLUE)To view all Terraform outputs:$(NC)"
+	@echo "  cd $(K8S_CLUSTER_DIR) && terraform output"
+	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 
 deploy-infrastructure: deploy-vpc deploy-k8s-cluster
 	@echo "$(GREEN)========================================$(NC)"

@@ -1,0 +1,88 @@
+---
+- name: Create ArgoCD Ingress
+  hosts: master1
+  become: true
+  gather_facts: true
+  vars_files:
+    - ../vars/main.yml
+
+  tasks:
+    - name: Get Terraform outputs
+      shell: |
+        cd {{ terraform_dir }} && terraform output -json
+      register: terraform_outputs_json
+      changed_when: false
+      failed_when: false
+      delegate_to: localhost
+
+    - name: Parse Terraform outputs
+      set_fact:
+        terraform_outputs: "{{ terraform_outputs_json.stdout | from_json }}"
+
+    - name: Set Terraform variables from outputs
+      set_fact:
+        terraform_argocd_domain: "{{ terraform_outputs.argocd_domain.value }}"
+        terraform_argocd_cert_issuer: "{{ terraform_outputs.argocd_cert_issuer.value }}"
+        terraform_argocd_cert_secret_name: "{{ terraform_outputs.argocd_cert_secret_name.value }}"
+
+    - name: Create ArgoCD Ingress manifest
+      shell: |
+        cat <<EOF | kubectl apply -f -
+        apiVersion: networking.k8s.io/v1
+        kind: Ingress
+        metadata:
+          name: {{ argocd_ingress_name }}
+          namespace: {{ argocd_namespace }}
+          annotations:
+            cert-manager.io/cluster-issuer: {{ terraform_argocd_cert_issuer }}
+        spec:
+          ingressClassName: {{ nginx_ingress_release_name }}
+          rules:
+          - host: {{ terraform_argocd_domain }}
+            http:
+              paths:
+              - path: /
+                pathType: Prefix
+                backend:
+                  service:
+                    name: {{ argocd_server_service_name }}
+                    port:
+                      number: 80
+          tls:
+          - hosts:
+            - {{ terraform_argocd_domain }}
+            secretName: {{ terraform_argocd_cert_secret_name }}
+        EOF
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: ingress_create
+      changed_when: "'created' in ingress_create.stdout or 'configured' in ingress_create.stdout"
+
+    - name: Verify ArgoCD Ingress is created
+      shell: |
+        kubectl get ingress {{ argocd_ingress_name }} -n {{ argocd_namespace }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: ingress_status
+      changed_when: false
+      failed_when: false
+
+    - name: Show Ingress status
+      debug:
+        var: ingress_status.stdout_lines
+      when: ingress_status.rc == 0
+
+    - name: Display Ingress details
+      shell: |
+        kubectl describe ingress {{ argocd_ingress_name }} -n {{ argocd_namespace }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: ingress_details
+      changed_when: false
+      failed_when: false
+
+    - name: Show Ingress details
+      debug:
+        var: ingress_details.stdout_lines
+      when: ingress_details.rc == 0
+

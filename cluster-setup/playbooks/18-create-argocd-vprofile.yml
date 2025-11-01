@@ -1,0 +1,129 @@
+---
+- name: Create ArgoCD VProfile Project and Application
+  hosts: master1
+  become: true
+  gather_facts: true
+  vars_files:
+    - ../vars/main.yml
+
+  tasks:
+    - name: Get Terraform outputs
+      shell: |
+        cd {{ terraform_dir }} && terraform output -json
+      register: terraform_outputs_json
+      changed_when: false
+      failed_when: false
+      delegate_to: localhost
+
+    - name: Parse Terraform outputs
+      set_fact:
+        terraform_outputs: "{{ terraform_outputs_json.stdout | from_json }}"
+
+    - name: Set Terraform variables from outputs
+      set_fact:
+        terraform_argocd_project_name: "{{ terraform_outputs.argocd_project_name.value }}"
+        terraform_argocd_app_name: "{{ terraform_outputs.argocd_app_name.value }}"
+        terraform_argocd_app_destination_namespace: "{{ terraform_outputs.argocd_app_destination_namespace.value }}"
+        terraform_argocd_app_source_path: "{{ terraform_outputs.argocd_app_source_path.value }}"
+        terraform_argocd_app_repo_url: "{{ terraform_outputs.argocd_app_repo_url.value }}"
+        terraform_argocd_app_repo_target_revision: "{{ terraform_outputs.argocd_app_repo_target_revision.value }}"
+
+    - name: Create ArgoCD AppProject manifest
+      shell: |
+        cat <<EOF | kubectl apply -f -
+        apiVersion: argoproj.io/v1alpha1
+        kind: AppProject
+        metadata:
+          name: {{ terraform_argocd_project_name }}
+          namespace: {{ argocd_namespace }}
+        spec:
+          description: "VProfile Application Project"
+          sourceRepos:
+          - "*"
+          destinations:
+          - namespace: "*"
+            server: "*"
+          clusterResourceWhitelist:
+          - group: "*"
+            kind: "*"
+        EOF
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: project_create
+      changed_when: "'created' in project_create.stdout or 'configured' in project_create.stdout"
+
+    - name: Verify ArgoCD AppProject is created
+      shell: |
+        kubectl get appproject {{ terraform_argocd_project_name }} -n {{ argocd_namespace }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: project_status
+      changed_when: false
+      failed_when: false
+
+    - name: Show AppProject status
+      debug:
+        var: project_status.stdout_lines
+      when: project_status.rc == 0
+
+    - name: Wait for AppProject to be ready
+      pause:
+        seconds: 5
+
+    - name: Create ArgoCD Application manifest
+      shell: |
+        cat <<EOF | kubectl apply -f -
+        apiVersion: argoproj.io/v1alpha1
+        kind: Application
+        metadata:
+          name: {{ terraform_argocd_app_name }}
+          namespace: {{ argocd_namespace }}
+        spec:
+          destination:
+            namespace: {{ terraform_argocd_app_destination_namespace }}
+            server: https://kubernetes.default.svc
+          project: {{ terraform_argocd_project_name }}
+          source:
+            path: {{ terraform_argocd_app_source_path }}
+            repoURL: {{ terraform_argocd_app_repo_url }}
+            targetRevision: {{ terraform_argocd_app_repo_target_revision }}
+          syncPolicy:
+            automated:
+              prune: true
+              selfHeal: true
+            syncOptions:
+            - CreateNamespace=true
+        EOF
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: app_create
+      changed_when: "'created' in app_create.stdout or 'configured' in app_create.stdout"
+
+    - name: Verify ArgoCD Application is created
+      shell: |
+        kubectl get application {{ terraform_argocd_app_name }} -n {{ argocd_namespace }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: app_status
+      changed_when: false
+      failed_when: false
+
+    - name: Show Application status
+      debug:
+        var: app_status.stdout_lines
+      when: app_status.rc == 0
+
+    - name: Display Application details
+      shell: |
+        kubectl describe application {{ terraform_argocd_app_name }} -n {{ argocd_namespace }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: app_details
+      changed_when: false
+      failed_when: false
+
+    - name: Show Application details
+      debug:
+        var: app_details.stdout_lines
+      when: app_details.rc == 0
+

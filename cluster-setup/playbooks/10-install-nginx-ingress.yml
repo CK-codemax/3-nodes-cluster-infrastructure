@@ -1,0 +1,130 @@
+---
+- name: Install NGINX Ingress Controller
+  hosts: master1
+  become: true
+  gather_facts: true
+  vars_files:
+    - ../vars/main.yml
+
+  tasks:
+    - name: Add ingress-nginx Helm repository
+      shell: |
+        helm repo add ingress-nginx {{ nginx_ingress_repository }}
+        helm repo update
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: helm_repo_add
+      changed_when: "'ingress-nginx' in helm_repo_add.stdout or 'has been added' in helm_repo_add.stdout"
+
+    - name: Verify values file exists
+      stat:
+        path: "{{ nginx_ingress_values_file }}"
+      register: values_file_stat
+      delegate_to: localhost
+      changed_when: false
+
+    - name: Fail if values file does not exist
+      fail:
+        msg: "Values file not found at {{ nginx_ingress_values_file }}"
+      when: not values_file_stat.stat.exists
+
+    - name: Copy values file to master node
+      copy:
+        src: "{{ nginx_ingress_values_file }}"
+        dest: /tmp/nginx-ingress-values.yaml
+        mode: '0644'
+      when: values_file_stat.stat.exists
+
+    - name: Create namespace for NGINX Ingress Controller
+      shell: |
+        kubectl create namespace {{ nginx_ingress_namespace }} --dry-run=client -o yaml | kubectl apply -f -
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: namespace_create
+      changed_when: "'created' in namespace_create.stdout or 'configured' in namespace_create.stdout"
+
+    - name: Install NGINX Ingress Controller using Helm
+      shell: |
+        helm upgrade --install {{ nginx_ingress_release_name }} {{ nginx_ingress_repository }}/{{ nginx_ingress_chart }} \
+          --namespace {{ nginx_ingress_namespace }} \
+          --version {{ nginx_ingress_chart_version }} \
+          --values /tmp/nginx-ingress-values.yaml \
+          --wait \
+          --timeout {{ helm_timeout }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: helm_install
+      changed_when: "'STATUS: deployed' in helm_install.stdout or 'has been upgraded' in helm_install.stdout"
+
+    - name: Display Helm installation output
+      debug:
+        var: helm_install.stdout_lines
+
+    - name: Verify NGINX Ingress Controller pods are running
+      shell: |
+        kubectl get pods -n {{ nginx_ingress_namespace }} -l app.kubernetes.io/name={{ nginx_ingress_chart }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: pod_status
+      until: >
+        pod_status.stdout is defined and
+        ('Running' in pod_status.stdout or 'Completed' in pod_status.stdout) and
+        '0/2' not in pod_status.stdout and
+        '0/1' not in pod_status.stdout
+      retries: 30
+      delay: 10
+      changed_when: false
+
+    - name: Display pod status
+      debug:
+        var: pod_status.stdout_lines
+
+    - name: Verify NGINX Ingress Controller deployment is ready
+      shell: |
+        kubectl get deployment -n {{ nginx_ingress_namespace }} {{ nginx_ingress_release_name }}-controller -o jsonpath='{.status.readyReplicas}'
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: ready_replicas
+      until: ready_replicas.stdout == "1" or ready_replicas.stdout == "2"
+      retries: 30
+      delay: 10
+      changed_when: false
+
+    - name: Display NGINX Ingress Controller deployment status
+      shell: |
+        kubectl get deployment -n {{ nginx_ingress_namespace }} {{ nginx_ingress_release_name }}-controller
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: deployment_status
+      changed_when: false
+
+    - name: Show deployment status
+      debug:
+        var: deployment_status.stdout_lines
+
+    - name: Display NGINX Ingress Controller service
+      shell: |
+        kubectl get svc -n {{ nginx_ingress_namespace }} {{ nginx_ingress_release_name }}-controller
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: service_status
+      changed_when: false
+
+    - name: Show service status
+      debug:
+        var: service_status.stdout_lines
+
+    - name: Display ingress class
+      shell: |
+        kubectl get ingressclass {{ nginx_ingress_release_name }}
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: ingressclass_status
+      changed_when: false
+      failed_when: false
+
+    - name: Show ingress class status
+      debug:
+        var: ingressclass_status.stdout_lines
+      when: ingressclass_status.rc == 0
+

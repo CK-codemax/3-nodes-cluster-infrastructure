@@ -1,0 +1,24 @@
+all:
+  hosts:
+    master1:
+      ansible_host: YOUR_MASTER1_IP_HERE
+    worker1:
+      ansible_host: YOUR_WORKER1_IP_HERE
+    worker2:
+      ansible_host: YOUR_WORKER2_IP_HERE
+  children:
+    masters:
+      hosts:
+        master1:
+      vars:
+        ansible_user: ubuntu
+        ansible_ssh_private_key_file: k8s-cluster-key
+        ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+    workers:
+      hosts:
+        worker1:
+        worker2:
+      vars:
+        ansible_user: ubuntu
+        ansible_ssh_private_key_file: k8s-cluster-key
+        ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'

@@ -1,0 +1,31 @@
+---
+- name: Setup kubectl autocomplete and alias
+  hosts: masters
+  become: no
+  gather_facts: yes
+  
+  tasks:
+    - name: Setup kubectl bash completion
+      shell: |
+        bash -c "source <(kubectl completion bash)"
+        echo "source <(kubectl completion bash)" >> ~/.bashrc
+      register: kubectl_completion
+      changed_when: false
+      
+    - name: Create kubectl alias 'k'
+      shell: |
+        bash -c "alias k=kubectl"
+        bash -c "complete -o default -F __start_kubectl k"
+        echo "alias k=kubectl" >> ~/.bashrc
+        echo "complete -o default -F __start_kubectl k" >> ~/.bashrc
+      register: kubectl_alias
+      changed_when: false
+      
+    - name: Reload bashrc
+      shell: bash -c "source ~/.bashrc"
+      register: bashrc_reload
+      changed_when: false
+      
+    - name: Display kubectl setup completion
+      debug:
+        msg: "{{ inventory_hostname }}: kubectl autocomplete and alias 'k' setup completed"
