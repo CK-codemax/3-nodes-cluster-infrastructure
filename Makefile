@@ -55,7 +55,7 @@ help:
 	@echo "  make prereq        - Run prerequisites playbook"
 	@echo "  make hostnames     - Configure hostnames"
 	@echo "  make master        - Initialize master node"
-	@echo "  make cni           - Install CNI (AWS VPC CNI)"
+	@echo "  make cni           - Install CNI (Calico)"
 	@echo "  make workers       - Join worker nodes"
 	@echo "  make verify        - Verify cluster"
 	@echo "  make kubectl-setup - Setup kubectl autocomplete and alias 'k'"
@@ -270,7 +270,7 @@ master:
 	@ansible-playbook cluster-setup/playbooks/03-initi-master.yml
 
 cni:
-	@echo "$(GREEN)Installing CNI (AWS VPC CNI)...$(NC)"
+	@echo "$(GREEN)Installing CNI (Calico)...$(NC)"
 	@ansible-playbook cluster-setup/playbooks/04-install-cni.yml
 
 workers:
