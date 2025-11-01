@@ -23,9 +23,9 @@
       set_fact:
         terraform_cluster_name: "{{ terraform_outputs.cluster_name.value }}"
 
-    - name: Get worker1 node name by hostname pattern
+    - name: Get worker1 node name
       shell: |
-        kubectl get nodes -o json | jq -r '.items[] | select(.metadata.name | contains("worker-1")) | .metadata.name'
+        kubectl get nodes -o json | jq -r '.items[] | select(.metadata.name == "worker1") | .metadata.name'
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: worker1_node_name
