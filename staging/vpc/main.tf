@@ -37,7 +37,7 @@ resource "aws_subnet" "private_zone2" {
   tags = {
     "Name"                                                 = "${var.env}-private-${var.az2}"
     "kubernetes.io/role/internal-elb"                      = "1"
-    "kubernetes.io/cluster/${var.env}-${var.eks_cluster_name}" = "owned"
+    "kubernetes.io/cluster/${var.env}-${var.cluster_name}" = "owned"
   }
 }
 
@@ -50,7 +50,7 @@ resource "aws_subnet" "public_zone1" {
   tags = {
     "Name"                                                 = "${var.env}-public-${var.az1}"
     "kubernetes.io/role/elb"                               = "1"
-    "kubernetes.io/cluster/${var.env}-${var.eks_cluster_name}" = "owned"
+    "kubernetes.io/cluster/${var.env}-${var.cluster_name}" = "owned"
   }
 }
 
@@ -63,7 +63,7 @@ resource "aws_subnet" "public_zone2" {
   tags = {
     "Name"                                                 = "${var.env}-public-${var.az2}"
     "kubernetes.io/role/elb"                               = "1"
-    "kubernetes.io/cluster/${var.env}-${var.eks_cluster_name}" = "owned"
+    "kubernetes.io/cluster/${var.env}-${var.cluster_name}" = "owned"
   }
 }
 
