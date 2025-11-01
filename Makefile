@@ -16,6 +16,8 @@ STATE_CONFIG := state.config
 S3_DIR := global/s3-state
 VPC_DIR := staging/vpc
 K8S_CLUSTER_DIR := staging/k8s-cluster
+TFVARS_PATH := $(abspath $(TFVARS))
+STATE_CONFIG_PATH := $(abspath $(STATE_CONFIG))
 
 # Colors for output
 RED := \033[0;31m
@@ -97,20 +99,15 @@ help:
 # ==============================================================================
 init-s3:
 	@echo "$(GREEN)Initializing S3 backend...$(NC)"
-	@if [ -f $(STATE_CONFIG) ]; then \
-		cd $(S3_DIR) && terraform init -backend-config=../$(STATE_CONFIG); \
-	else \
-		echo "$(YELLOW)Warning: $(STATE_CONFIG) not found. Using default backend config.$(NC)"; \
-		cd $(S3_DIR) && terraform init; \
-	fi
+	@cd $(S3_DIR) && terraform init -input=false -backend-config=../../$(STATE_CONFIG)
 
 deploy-s3:
 	@echo "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(GREEN)Deploying S3 backend...$(NC)"
 	@cd $(S3_DIR) && \
-		terraform init && \
-		terraform plan -compact-warnings -var-file=../../$(TFVARS) -out=tfplan && \
-		terraform apply -auto-approve tfplan && \
+		terraform init -input=false && \
+		terraform plan -input=false -compact-warnings -var-file=$(TFVARS_PATH) -out=tfplan && \
+		terraform apply -input=false -auto-approve tfplan && \
 		rm -f tfplan
 	@echo "$(GREEN)✓ S3 backend deployed$(NC)"
 	@echo ""
@@ -126,19 +123,14 @@ deploy-s3:
 
 migrate-s3-backend:
 	@echo "$(GREEN)Migrating S3 backend state...$(NC)"
-	@if [ -f $(STATE_CONFIG) ]; then \
-		cd $(S3_DIR) && echo "yes" | terraform init -input=false -migrate-state -backend-config=../../$(STATE_CONFIG); \
-	else \
-		echo "$(YELLOW)Warning: $(STATE_CONFIG) not found. Using default backend config.$(NC)"; \
-		cd $(S3_DIR) && echo "yes" | terraform init -input=false -migrate-state; \
-	fi
+	@cd $(S3_DIR) && echo "yes" | terraform init -input=false -migrate-state -backend-config=../../$(STATE_CONFIG)
 	@echo "$(GREEN)✓ S3 backend state migrated$(NC)"
 
 plan-s3:
 	@echo "$(YELLOW)Planning S3 backend changes...$(NC)"
 	@cd $(S3_DIR) && \
-		terraform init && \
-		terraform plan -compact-warnings -var-file=../../$(TFVARS)
+		terraform init -input=false && \
+		terraform plan -input=false -compact-warnings -var-file=$(TFVARS_PATH)
 
 # ==============================================================================
 # Infrastructure Deployment
@@ -146,39 +138,21 @@ plan-s3:
 deploy-vpc:
 	@echo "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(GREEN)Deploying VPC...$(NC)"
-	@if [ -f $(STATE_CONFIG) ]; then \
-		cd $(VPC_DIR) && \
-		terraform init -backend-config=../../$(STATE_CONFIG) && \
-		terraform plan -compact-warnings -var-file=../../$(TFVARS) -out=tfplan && \
-		terraform apply -auto-approve tfplan && \
-		rm -f tfplan; \
-	else \
-		echo "$(YELLOW)Warning: $(STATE_CONFIG) not found. Using default backend config.$(NC)"; \
-		cd $(VPC_DIR) && \
-		terraform init && \
-		terraform plan -compact-warnings -var-file=../../$(TFVARS) -out=tfplan && \
-		terraform apply -auto-approve tfplan && \
-		rm -f tfplan; \
-	fi
+	@cd $(VPC_DIR) && \
+		terraform init -input=false -backend-config=../../$(STATE_CONFIG) -backend-config="key=staging/vpc/terraform.tfstate" && \
+		terraform plan -input=false -compact-warnings -var-file=$(TFVARS_PATH) -out=tfplan && \
+		terraform apply -input=false -auto-approve tfplan && \
+		rm -f tfplan
 	@echo "$(GREEN)✓ VPC deployed successfully$(NC)"
 
 deploy-k8s-cluster:
 	@echo "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(GREEN)Deploying Kubernetes cluster infrastructure...$(NC)"
-	@if [ -f $(STATE_CONFIG) ]; then \
-		cd $(K8S_CLUSTER_DIR) && \
-		terraform init -backend-config=../../$(STATE_CONFIG) && \
-		terraform plan -compact-warnings -var-file=../../$(TFVARS) -out=tfplan && \
-		terraform apply -auto-approve tfplan && \
-		rm -f tfplan; \
-	else \
-		echo "$(YELLOW)Warning: $(STATE_CONFIG) not found. Using default backend config.$(NC)"; \
-		cd $(K8S_CLUSTER_DIR) && \
-		terraform init && \
-		terraform plan -compact-warnings -var-file=../../$(TFVARS) -out=tfplan && \
-		terraform apply -auto-approve tfplan && \
-		rm -f tfplan; \
-	fi
+	@cd $(K8S_CLUSTER_DIR) && \
+		terraform init -input=false -backend-config=../../$(STATE_CONFIG) -backend-config="key=staging/k8s-cluster/terraform.tfstate" && \
+		terraform plan -input=false -compact-warnings -var-file=$(TFVARS_PATH) -out=tfplan && \
+		terraform apply -input=false -auto-approve tfplan && \
+		rm -f tfplan
 	@echo "$(GREEN)✓ Kubernetes cluster infrastructure deployed successfully$(NC)"
 
 deploy-infrastructure: deploy-vpc deploy-k8s-cluster
@@ -194,27 +168,15 @@ deploy-infrastructure: deploy-vpc deploy-k8s-cluster
 
 plan-vpc:
 	@echo "$(YELLOW)Planning VPC changes...$(NC)"
-	@if [ -f $(STATE_CONFIG) ]; then \
-		cd $(VPC_DIR) && \
-		terraform init -backend-config=../../$(STATE_CONFIG) && \
-		terraform plan -compact-warnings -var-file=../../$(TFVARS); \
-	else \
-		cd $(VPC_DIR) && \
-		terraform init && \
-		terraform plan -compact-warnings -var-file=../../$(TFVARS); \
-	fi
+	@cd $(VPC_DIR) && \
+		terraform init -input=false -backend-config=../../$(STATE_CONFIG) -backend-config="key=staging/vpc/terraform.tfstate" && \
+		terraform plan -input=false -compact-warnings -var-file=$(TFVARS_PATH)
 
 plan-k8s-cluster:
 	@echo "$(YELLOW)Planning K8s cluster changes...$(NC)"
-	@if [ -f $(STATE_CONFIG) ]; then \
-		cd $(K8S_CLUSTER_DIR) && \
-		terraform init -backend-config=../../$(STATE_CONFIG) && \
-		terraform plan -compact-warnings -var-file=../../$(TFVARS); \
-	else \
-		cd $(K8S_CLUSTER_DIR) && \
-		terraform init && \
-		terraform plan -compact-warnings -var-file=../../$(TFVARS); \
-	fi
+	@cd $(K8S_CLUSTER_DIR) && \
+		terraform init -input=false -backend-config=../../$(STATE_CONFIG) -backend-config="key=staging/k8s-cluster/terraform.tfstate" && \
+		terraform plan -input=false -compact-warnings -var-file=$(TFVARS_PATH)
 
 plan-all: plan-s3 plan-vpc plan-k8s-cluster
 	@echo "$(GREEN)All infrastructure planning completed$(NC)"
@@ -224,28 +186,16 @@ plan-all: plan-s3 plan-vpc plan-k8s-cluster
 # ==============================================================================
 destroy-k8s-cluster:
 	@echo "$(RED)Destroying Kubernetes cluster infrastructure...$(NC)"
-	@if [ -f $(STATE_CONFIG) ]; then \
-		cd $(K8S_CLUSTER_DIR) && \
-		terraform init -backend-config=../../$(STATE_CONFIG) && \
-		terraform destroy -compact-warnings -var-file=../../$(TFVARS) -auto-approve; \
-	else \
-		cd $(K8S_CLUSTER_DIR) && \
-		terraform init && \
-		terraform destroy -compact-warnings -var-file=../../$(TFVARS) -auto-approve; \
-	fi
+	@cd $(K8S_CLUSTER_DIR) && \
+		terraform init -input=false -backend-config=../../$(STATE_CONFIG) -backend-config="key=staging/k8s-cluster/terraform.tfstate" && \
+		terraform destroy -input=false -compact-warnings -var-file=$(TFVARS_PATH) -auto-approve
 	@echo "$(GREEN)✓ Kubernetes cluster infrastructure destroyed$(NC)"
 
 destroy-vpc:
 	@echo "$(RED)Destroying VPC infrastructure...$(NC)"
-	@if [ -f $(STATE_CONFIG) ]; then \
-		cd $(VPC_DIR) && \
-		terraform init -backend-config=../../$(STATE_CONFIG) && \
-		terraform destroy -compact-warnings -var-file=../../$(TFVARS) -auto-approve; \
-	else \
-		cd $(VPC_DIR) && \
-		terraform init && \
-		terraform destroy -compact-warnings -var-file=../../$(TFVARS) -auto-approve; \
-	fi
+	@cd $(VPC_DIR) && \
+		terraform init -input=false -backend-config=../../$(STATE_CONFIG) -backend-config="key=staging/vpc/terraform.tfstate" && \
+		terraform destroy -input=false -compact-warnings -var-file=$(TFVARS_PATH) -auto-approve
 	@echo "$(GREEN)✓ VPC infrastructure destroyed$(NC)"
 
 destroy-infrastructure: destroy-k8s-cluster destroy-vpc
