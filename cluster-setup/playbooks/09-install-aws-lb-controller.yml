@@ -54,17 +54,27 @@
         terraform_vpc_id: "{{ terraform_outputs.vpc_id.value }}"
         terraform_aws_lbc_role_arn: "{{ terraform_outputs.aws_lbc_role_arn.value }}"
 
-    - name: Annotate Service Account with IAM Role ARN (for IRSA)
+    - name: Remove IRSA annotation (not needed for self-managed clusters using instance profiles)
       shell: |
         kubectl annotate serviceaccount {{ aws_lbc_service_account }} \
-          eks.amazonaws.com/role-arn={{ terraform_aws_lbc_role_arn }} \
+          eks.amazonaws.com/role-arn- \
           --namespace {{ aws_lbc_namespace }} \
           --overwrite
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
+      register: sa_annotate_remove
+      changed_when: sa_annotate_remove.rc == 0
+      failed_when: false
       when: terraform_aws_lbc_role_arn is defined and terraform_aws_lbc_role_arn | length > 0
-      register: sa_annotate
-      changed_when: "'annotated' in sa_annotate.stdout or 'updated' in sa_annotate.stdout"
+
+    - name: Label worker1 node for AWS workloads
+      shell: |
+        kubectl label node worker1 aws-workloads=enabled --overwrite
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: node_label
+      changed_when: "'labeled' in node_label.stdout or 'already labeled' in node_label.stderr"
+      failed_when: node_label.rc != 0 and 'already labeled' not in node_label.stderr
 
     - name: Install AWS Load Balancer Controller using Helm
       shell: |
@@ -76,6 +86,7 @@
           --set serviceAccount.name={{ aws_lbc_service_account }} \
           --set region={{ aws_region }} \
           --set vpcId={{ terraform_vpc_id }} \
+          --set nodeSelector.aws-workloads=enabled \
           --wait \
           --timeout {{ helm_timeout }}
       environment:

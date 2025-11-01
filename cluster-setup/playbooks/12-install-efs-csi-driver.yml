@@ -54,17 +54,27 @@
       register: sa_create
       changed_when: "'created' in sa_create.stdout or 'configured' in sa_create.stdout"
 
-    - name: Annotate Service Account with IAM Role ARN (for IRSA)
+    - name: Remove IRSA annotation (not needed for self-managed clusters using instance profiles)
       shell: |
         kubectl annotate serviceaccount {{ efs_csi_driver_service_account }} \
-          eks.amazonaws.com/role-arn={{ terraform_efs_csi_driver_role_arn }} \
+          eks.amazonaws.com/role-arn- \
           --namespace {{ efs_csi_driver_namespace }} \
           --overwrite
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
+      register: sa_annotate_remove
+      changed_when: sa_annotate_remove.rc == 0
+      failed_when: false
       when: terraform_efs_csi_driver_role_arn is defined and terraform_efs_csi_driver_role_arn | length > 0
-      register: sa_annotate
-      changed_when: "'annotated' in sa_annotate.stdout or 'updated' in sa_annotate.stdout"
+
+    - name: Label worker1 node for AWS workloads
+      shell: |
+        kubectl label node worker1 aws-workloads=enabled --overwrite
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: node_label
+      changed_when: "'labeled' in node_label.stdout or 'already labeled' in node_label.stderr"
+      failed_when: node_label.rc != 0 and 'already labeled' not in node_label.stderr
 
     - name: Install AWS EFS CSI Driver using Helm
       shell: |
@@ -73,6 +83,7 @@
           --version {{ efs_csi_driver_chart_version }} \
           --set controller.serviceAccount.create=false \
           --set controller.serviceAccount.name={{ efs_csi_driver_service_account }} \
+          --set controller.nodeSelector.aws-workloads=enabled \
           --wait \
           --timeout {{ helm_timeout }}
       environment:

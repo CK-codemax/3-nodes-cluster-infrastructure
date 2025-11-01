@@ -64,3 +64,14 @@ output "etcd_backup_instance_profile_name" {
   value       = aws_iam_instance_profile.etcd_backup.name
 }
 
+# AWS Workloads Instance Profile Outputs
+output "aws_workloads_instance_profile_name" {
+  description = "Name of the instance profile for AWS workloads"
+  value       = aws_iam_instance_profile.aws_workloads.name
+}
+
+output "aws_workloads_instance_profile_arn" {
+  description = "ARN of the instance profile for AWS workloads"
+  value       = aws_iam_instance_profile.aws_workloads.arn
+}
+

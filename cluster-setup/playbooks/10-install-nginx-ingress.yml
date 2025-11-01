@@ -35,13 +35,24 @@
         mode: '0644'
       when: values_file_stat.stat.exists
 
+    - name: Check if namespace exists
+      shell: |
+        kubectl get namespace {{ nginx_ingress_namespace }} --ignore-not-found --request-timeout=10s
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: namespace_check
+      changed_when: false
+      failed_when: false
+
     - name: Create namespace for NGINX Ingress Controller
       shell: |
-        kubectl create namespace {{ nginx_ingress_namespace }} --dry-run=client -o yaml | kubectl apply -f -
+        kubectl create namespace {{ nginx_ingress_namespace }} --request-timeout=10s
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: namespace_create
-      changed_when: "'created' in namespace_create.stdout or 'configured' in namespace_create.stdout"
+      changed_when: "'created' in namespace_create.stdout"
+      failed_when: namespace_create.rc != 0 and 'AlreadyExists' not in namespace_create.stderr
+      when: namespace_check.stdout == ""
 
     - name: Install NGINX Ingress Controller using Helm
       shell: |

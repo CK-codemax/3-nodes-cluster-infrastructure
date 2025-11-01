@@ -57,42 +57,10 @@ resource "aws_efs_mount_target" "mount_targets" {
   depends_on = [aws_efs_file_system.eks]
 }
 
-# IAM Policy Document for EFS CSI Driver
-# Note: For self-managed Kubernetes clusters, using similar pattern to other CSI drivers
-data "aws_iam_policy_document" "efs_csi_driver_assume_role" {
-  statement {
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["pods.eks.amazonaws.com"]
-    }
-
-    actions = [
-      "sts:AssumeRole",
-      "sts:TagSession"
-    ]
-  }
-}
-
-# IAM Role for EFS CSI Driver
-resource "aws_iam_role" "efs_csi_driver" {
-  name               = var.efs_csi_driver_role_name != "" ? var.efs_csi_driver_role_name : "${var.env}-${var.cluster_name}-efs-csi-driver"
-  assume_role_policy = data.aws_iam_policy_document.efs_csi_driver_assume_role.json
-
-  tags = {
-    Name        = var.efs_csi_driver_role_tag_name != "" ? var.efs_csi_driver_role_tag_name : "${var.cluster_name}-efs-csi-driver-role"
-    Description = var.efs_csi_driver_role_tag_description
-  }
-}
-
-# Attach the AWS-managed EFS CSI Driver Policy
-resource "aws_iam_role_policy_attachment" "efs_csi_driver_policy" {
-  role       = aws_iam_role.efs_csi_driver.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEFSCSIDriverPolicy"
-
-  depends_on = [aws_iam_role.efs_csi_driver]
-}
+# EFS CSI Driver IAM
+# Note: For self-managed clusters, we use instance profiles instead of IRSA/OIDC
+# The AWS-managed EFS CSI Driver Policy is attached to the combined AWS workloads instance profile
+# This section is kept for reference/outputs but the actual IAM role is not used with instance profiles
 
 # Outputs for Ansible playbook
 output "efs_file_system_id" {
@@ -106,13 +74,13 @@ output "efs_file_system_dns_name" {
 }
 
 output "efs_csi_driver_role_arn" {
-  description = "ARN of the IAM role for EFS CSI Driver"
-  value       = aws_iam_role.efs_csi_driver.arn
+  description = "ARN of the IAM role for EFS CSI Driver (not used with instance profiles)"
+  value       = ""
 }
 
 output "efs_csi_driver_role_name" {
-  description = "Name of the IAM role for EFS CSI Driver"
-  value       = aws_iam_role.efs_csi_driver.name
+  description = "Name of the IAM role for EFS CSI Driver (not used with instance profiles)"
+  value       = ""
 }
 
 output "efs_mount_target_subnets" {
