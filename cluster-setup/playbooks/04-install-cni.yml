@@ -7,9 +7,15 @@
     - ../vars/main.yml
 
   tasks:
-    - name: Apply AWS VPC CNI
+    - name: Copy AWS VPC CNI manifest to master node
+      copy:
+        src: "{{ aws_cni_values_file }}"
+        dest: /tmp/aws-k8s-cni.yaml
+        mode: '0644'
+
+    - name: Apply AWS VPC CNI from local values file
       shell: |
-        kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/main/config/master/aws-k8s-cni.yaml
+        kubectl apply -f /tmp/aws-k8s-cni.yaml
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: aws_cni_apply
