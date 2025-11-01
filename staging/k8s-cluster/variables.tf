@@ -204,3 +204,51 @@ variable "efs_encrypted" {
   type        = bool
   default     = true
 }
+
+variable "terraform_s3_bucket" {
+  description = "S3 bucket name for Terraform state"
+  type        = string
+}
+
+# etcd Backup Configuration
+variable "etcd_backup_retention_days" {
+  description = "Number of days to retain etcd backups"
+  type        = number
+  default     = 90
+}
+
+variable "etcd_backup_role_name" {
+  description = "Name of the IAM role for etcd backup"
+  type        = string
+  default     = ""
+}
+
+variable "etcd_backup_policy_name" {
+  description = "Name of the IAM policy for etcd backup"
+  type        = string
+  default     = ""
+}
+
+variable "etcd_backup_instance_profile_name" {
+  description = "Name of the IAM instance profile for etcd backup"
+  type        = string
+  default     = ""
+}
+
+variable "etcd_backup_role_tag_name" {
+  description = "Tag Name for etcd backup IAM role"
+  type        = string
+  default     = ""
+}
+
+variable "etcd_backup_role_tag_description" {
+  description = "Tag Description for etcd backup IAM role"
+  type        = string
+  default     = "IAM role for etcd backup to S3"
+}
+
+variable "etcd_backup_policy_tag_name" {
+  description = "Tag Name for etcd backup IAM policy"
+  type        = string
+  default     = ""
+}

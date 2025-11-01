@@ -83,12 +83,26 @@ make setup-infra
 # Step 3: Complete cluster setup
 make setup-cluster
 
+# Step 4: Install addon components (optional)
+make setup-addons    # Install storage, ingress, cert-manager, metrics
+make setup-argocd    # Install ArgoCD with VProfile app
+
 # Or step by step:
 make keys                    # Generate SSH keys
 make apply                   # Create infrastructure
 make inventory              # Create inventory file
 # Edit cluster-setup/inventory/hosts.yml with actual IPs
 make all                    # Deploy Kubernetes cluster
+make aws-lb-controller      # Install AWS Load Balancer Controller
+make nginx-ingress          # Install NGINX Ingress
+make ebs-csi                # Install EBS CSI Driver
+make efs-csi                # Install EFS CSI Driver
+make cert-manager           # Install Cert Manager
+make cluster-issuer         # Create ClusterIssuer
+make metrics-server         # Install Metrics Server
+make argocd                 # Install ArgoCD
+make argocd-ingress         # Create ArgoCD Ingress
+make argocd-vprofile        # Create ArgoCD VProfile app
 ```
 
 ## Complete Setup Workflow
@@ -117,8 +131,34 @@ make setup-cluster
 - Installs CNI (Calico)
 - Joins worker nodes
 - Verifies cluster is working
+- Sets up kubectl autocomplete and alias
 
-### 3. Cluster Cleanup (when done)
+### 3. Install Addon Components (Optional)
+```bash
+# Install all addons at once
+make setup-addons
+
+# Or install individually
+make aws-lb-controller      # AWS Load Balancer Controller
+make nginx-ingress          # NGINX Ingress Controller
+make ebs-csi                # EBS CSI Driver
+make efs-csi                # EFS CSI Driver
+make cert-manager           # Cert Manager
+make cluster-issuer         # Let's Encrypt ClusterIssuer
+make metrics-server         # Metrics Server
+```
+
+### 4. Install ArgoCD (Optional)
+```bash
+make setup-argocd
+```
+**What this does:**
+- Installs ArgoCD
+- Creates ArgoCD Ingress with TLS
+- Creates VProfile AppProject
+- Creates VProfile Application with automated sync
+
+### 5. Cluster Cleanup (when done)
 ```bash
 make cleanup-cluster
 ```
@@ -130,7 +170,7 @@ make cleanup-cluster
 - Cleans up directories and network settings
 - Resets configuration files
 
-### 4. Complete Cleanup
+### 6. Complete Cleanup
 ```bash
 make clean
 ```
@@ -146,6 +186,7 @@ make destroy  # Destroy AWS infrastructure
 ### Available Makefile Targets
 
 ```bash
+# Core Infrastructure
 make help                   # Show all available commands
 make keys                   # Generate SSH key pair
 make init                   # Initialize Terraform
@@ -153,6 +194,8 @@ make plan                   # Plan deployment
 make apply                  # Create infrastructure
 make destroy                # Destroy infrastructure
 make inventory              # Create inventory file
+
+# Cluster Setup
 make ping                   # Test connectivity
 make prereq                 # Run prerequisites
 make hostnames              # Configure hostnames
@@ -160,6 +203,29 @@ make master                 # Initialize master
 make cni                    # Install CNI
 make workers                # Join workers
 make verify                 # Verify cluster
+make kubectl-setup          # Setup kubectl autocomplete
+make all                    # Run all core playbooks
+
+# Addon Components
+make aws-lb-controller      # Install AWS Load Balancer Controller
+make nginx-ingress          # Install NGINX Ingress Controller
+make ebs-csi                # Install EBS CSI Driver
+make efs-csi                # Install EFS CSI Driver
+make cert-manager           # Install Cert Manager
+make cluster-issuer         # Create Let's Encrypt ClusterIssuer
+make metrics-server         # Install Metrics Server
+make argocd                 # Install ArgoCD
+make argocd-ingress         # Create ArgoCD Ingress
+make argocd-vprofile        # Create ArgoCD VProfile app
+
+# Grouped Setup
+make setup-storage          # Install storage drivers (EBS + EFS)
+make setup-ingress          # Install ingress components (AWS LB + NGINX)
+make setup-cert-manager     # Install cert-manager and ClusterIssuer
+make setup-addons           # Install all addons
+make setup-argocd           # Install ArgoCD with ingress and VProfile
+
+# Complete Setup
 make setup-infra            # Complete infrastructure setup
 make setup-cluster          # Complete cluster setup
 make cleanup-cluster        # Clean up Kubernetes resources

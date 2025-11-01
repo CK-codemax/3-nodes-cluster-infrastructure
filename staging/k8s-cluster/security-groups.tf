@@ -1,13 +1,19 @@
+# Get VPC CIDR from remote state
+locals {
+  vpc_cidr = data.terraform_remote_state.vpc.outputs.vpc_cidr
+}
+
 # Security Groups
 resource "aws_security_group" "masters" {
   name_prefix = "${var.cluster_name}-masters-"
+  vpc_id      = data.aws_vpc.main.id
 
   # HTTP/HTTPS - Only allow from VPC (Load Balancers will route through VPC)
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["172.31.0.0/16"]
+    cidr_blocks = [local.vpc_cidr]
     description = "HTTP access from VPC (Load Balancers)"
   }
 
@@ -15,7 +21,7 @@ resource "aws_security_group" "masters" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["172.31.0.0/16"]
+    cidr_blocks = [local.vpc_cidr]
     description = "HTTPS access from VPC (Load Balancers)"
   }
 
@@ -85,12 +91,12 @@ resource "aws_security_group" "masters" {
     cidr_blocks = ["192.168.0.0/16"]
   }
 
-  # Pod-to-pod communication: Allow all traffic from default VPC (172.31.0.0/16)
+  # Pod-to-pod communication: Allow all traffic from VPC CIDR
   ingress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["172.31.0.0/16"]
+    cidr_blocks = [local.vpc_cidr]
   }
 
   # All outbound traffic
@@ -112,13 +118,14 @@ resource "aws_security_group" "masters" {
 
 resource "aws_security_group" "workers" {
   name_prefix = "${var.cluster_name}-workers-"
+  vpc_id      = data.aws_vpc.main.id
 
   # HTTP/HTTPS - Only allow from VPC (Load Balancers will route through VPC)
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["172.31.0.0/16"]
+    cidr_blocks = [local.vpc_cidr]
     description = "HTTP access from VPC (Load Balancers)"
   }
 
@@ -126,7 +133,7 @@ resource "aws_security_group" "workers" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["172.31.0.0/16"]
+    cidr_blocks = [local.vpc_cidr]
     description = "HTTPS access from VPC (Load Balancers)"
   }
 
@@ -153,7 +160,7 @@ resource "aws_security_group" "workers" {
     from_port   = 30000
     to_port     = 32767
     protocol    = "tcp"
-    cidr_blocks = ["172.31.0.0/16"]
+    cidr_blocks = [local.vpc_cidr]
     description = "NodePort access from VPC (Load Balancers)"
   }
 
@@ -161,7 +168,7 @@ resource "aws_security_group" "workers" {
     from_port   = 30000
     to_port     = 32767
     protocol    = "udp"
-    cidr_blocks = ["172.31.0.0/16"]
+    cidr_blocks = [local.vpc_cidr]
     description = "NodePort UDP access from VPC (Load Balancers)"
   }
 
@@ -189,12 +196,12 @@ resource "aws_security_group" "workers" {
     cidr_blocks = ["192.168.0.0/16"]
   }
 
-  # Pod-to-pod communication: Allow all traffic from default VPC (172.31.0.0/16)
+  # Pod-to-pod communication: Allow all traffic from VPC CIDR
   ingress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["172.31.0.0/16"]
+    cidr_blocks = [local.vpc_cidr]
   }
 
   # All outbound traffic

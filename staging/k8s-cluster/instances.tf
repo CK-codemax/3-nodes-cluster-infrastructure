@@ -1,7 +1,7 @@
 # Key Pair
 resource "aws_key_pair" "main" {
   key_name   = var.key_pair_name
-  public_key = file("${path.module}/k8s-cluster-key.pub")
+  public_key = file("${path.module}/../../k8s-cluster-key.pub")
 
   tags = {
     Name = "${var.cluster_name}-keypair"
@@ -16,6 +16,8 @@ resource "aws_instance" "masters" {
   instance_type          = var.master_instance_type
   key_name              = aws_key_pair.main.key_name
   vpc_security_group_ids = [aws_security_group.masters.id]
+  subnet_id             = data.terraform_remote_state.vpc.outputs.public_subnet_ids[0]
+  iam_instance_profile  = aws_iam_instance_profile.etcd_backup.name
 
   root_block_device {
     volume_type = "gp3"
@@ -23,7 +25,7 @@ resource "aws_instance" "masters" {
     encrypted   = true
   }
 
-  user_data = base64encode(templatefile("${path.module}/scripts/master-userdata.sh", {
+  user_data = base64encode(templatefile("${path.module}/../../scripts/master-userdata.sh", {
     cluster_name = var.cluster_name
     node_index   = count.index + 1
   }))
@@ -43,6 +45,7 @@ resource "aws_instance" "workers" {
   instance_type          = var.worker_instance_type
   key_name              = aws_key_pair.main.key_name
   vpc_security_group_ids = [aws_security_group.workers.id]
+  subnet_id             = data.terraform_remote_state.vpc.outputs.public_subnet_ids[count.index % length(data.terraform_remote_state.vpc.outputs.public_subnet_ids)]
 
   root_block_device {
     volume_type = "gp3"
@@ -50,7 +53,7 @@ resource "aws_instance" "workers" {
     encrypted   = true
   }
 
-  user_data = base64encode(templatefile("${path.module}/scripts/worker-userdata.sh", {
+  user_data = base64encode(templatefile("${path.module}/../../scripts/worker-userdata.sh", {
     cluster_name = var.cluster_name
     node_index   = count.index + 1
   }))

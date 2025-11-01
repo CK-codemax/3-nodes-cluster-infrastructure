@@ -29,23 +29,23 @@ data "aws_iam_policy_document" "aws_lbc" {
 
 # IAM Role for AWS Load Balancer Controller
 resource "aws_iam_role" "aws_lbc" {
-  name               = "${var.environment}-${var.cluster_name}-aws-lbc"
+  name               = var.aws_lbc_role_name != "" ? var.aws_lbc_role_name : "${var.environment}-${var.cluster_name}-aws-lbc"
   assume_role_policy = data.aws_iam_policy_document.aws_lbc.json
 
   tags = {
-    Name        = "${var.cluster_name}-aws-lbc-role"
-    Description = "IAM role for AWS Load Balancer Controller"
+    Name        = var.aws_lbc_role_tag_name != "" ? var.aws_lbc_role_tag_name : "${var.cluster_name}-aws-lbc-role"
+    Description = var.aws_lbc_role_tag_description
   }
 }
 
 # IAM Policy for AWS Load Balancer Controller
 resource "aws_iam_policy" "aws_lbc" {
-  name        = "${var.environment}-${var.cluster_name}-AWSLoadBalancerController"
+  name        = var.aws_lbc_policy_name != "" ? var.aws_lbc_policy_name : "${var.environment}-${var.cluster_name}-AWSLoadBalancerController"
   description = "IAM policy for AWS Load Balancer Controller"
   policy      = file("${path.module}/iam/AWSLoadBalancerController.json")
 
   tags = {
-    Name = "${var.cluster_name}-aws-lbc-policy"
+    Name = var.aws_lbc_policy_tag_name != "" ? var.aws_lbc_policy_tag_name : "${var.cluster_name}-aws-lbc-policy"
   }
 }
 
