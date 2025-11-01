@@ -120,21 +120,21 @@ resource "aws_security_group" "workers" {
   name_prefix = "${var.cluster_name}-workers-"
   vpc_id      = data.aws_vpc.main.id
 
-  # HTTP/HTTPS - Allow from internet (NLB traffic)
+  # HTTP/HTTPS - Allow from VPC only (NLB traffic routes through VPC)
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "HTTP access from internet (NLB traffic)"
+    cidr_blocks = [local.vpc_cidr]
+    description = "HTTP access from VPC (NLB traffic routes through VPC, not direct internet)"
   }
 
   ingress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "HTTPS access from internet (NLB traffic)"
+    cidr_blocks = [local.vpc_cidr]
+    description = "HTTPS access from VPC (NLB traffic routes through VPC, not direct internet)"
   }
 
   # SSH access (for management)
@@ -155,21 +155,21 @@ resource "aws_security_group" "workers" {
     description     = "Kubelet API access from masters"
   }
 
-  # NodePort services - Allow from internet (NLB traffic)
+  # NodePort services - Allow from VPC only (NLB traffic routes through VPC)
   ingress {
     from_port   = 30000
     to_port     = 32767
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "NodePort TCP access from internet (NLB traffic)"
+    cidr_blocks = [local.vpc_cidr]
+    description = "NodePort TCP access from VPC (NLB traffic routes through VPC, not direct internet)"
   }
 
   ingress {
     from_port   = 30000
     to_port     = 32767
     protocol    = "udp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "NodePort UDP access from internet (NLB traffic)"
+    cidr_blocks = [local.vpc_cidr]
+    description = "NodePort UDP access from VPC (NLB traffic routes through VPC, not direct internet)"
   }
 
   # All traffic from masters

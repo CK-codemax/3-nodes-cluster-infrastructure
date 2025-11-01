@@ -46,6 +46,8 @@ resource "aws_instance" "workers" {
   key_name              = aws_key_pair.main.key_name
   vpc_security_group_ids = [aws_security_group.workers.id]
   subnet_id             = data.terraform_remote_state.vpc.outputs.public_subnet_ids[count.index % length(data.terraform_remote_state.vpc.outputs.public_subnet_ids)]
+  # Explicitly enable public IP for internet-facing NLB traffic
+  associate_public_ip_address = true
   # Attach AWS workloads instance profile to worker1 (first worker) for AWS Load Balancer Controller
   iam_instance_profile  = count.index == 0 ? aws_iam_instance_profile.aws_workloads.name : null
 
