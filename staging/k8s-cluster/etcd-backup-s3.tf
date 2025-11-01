@@ -135,6 +135,22 @@ resource "aws_iam_role_policy_attachment" "etcd_backup_aws_lbc" {
   ]
 }
 
+# Attach EBS CSI Driver policy to etcd_backup role (for master nodes)
+resource "aws_iam_role_policy_attachment" "etcd_backup_ebs_csi" {
+  role       = aws_iam_role.etcd_backup.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+
+  depends_on = [aws_iam_role.etcd_backup]
+}
+
+# Attach EFS CSI Driver policy to etcd_backup role (for master nodes)
+resource "aws_iam_role_policy_attachment" "etcd_backup_efs_csi" {
+  role       = aws_iam_role.etcd_backup.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEFSCSIDriverPolicy"
+
+  depends_on = [aws_iam_role.etcd_backup]
+}
+
 # Instance profile for etcd backup (to attach to master nodes)
 resource "aws_iam_instance_profile" "etcd_backup" {
   name = var.etcd_backup_instance_profile_name != "" ? var.etcd_backup_instance_profile_name : "${var.env}-${var.cluster_name}-etcd-backup-profile"
