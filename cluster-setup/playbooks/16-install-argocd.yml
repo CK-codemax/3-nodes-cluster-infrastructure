@@ -61,17 +61,21 @@
 
     - name: Verify ArgoCD pods are running
       shell: |
-        kubectl get pods -n {{ argocd_namespace }} -l app.kubernetes.io/name={{ argocd_chart }}
+        kubectl get pods -n {{ argocd_namespace }} --field-selector=status.phase=Running --no-headers | wc -l
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: running_pods_count
+      until: running_pods_count.stdout | int >= 5
+      retries: 30
+      delay: 10
+      changed_when: false
+
+    - name: Display all ArgoCD pods
+      shell: |
+        kubectl get pods -n {{ argocd_namespace }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: pod_status
-      until: >
-        pod_status.stdout is defined and
-        ('Running' in pod_status.stdout or 'Completed' in pod_status.stdout) and
-        '0/2' not in pod_status.stdout and
-        '0/1' not in pod_status.stdout
-      retries: 30
-      delay: 10
       changed_when: false
 
     - name: Display pod status
