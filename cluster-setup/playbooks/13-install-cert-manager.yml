@@ -26,7 +26,7 @@
 
     - name: Install Cert Manager using Helm
       shell: |
-        helm upgrade --install {{ cert_manager_release_name }} {{ cert_manager_repository }}/{{ cert_manager_chart }} \
+        helm upgrade --install {{ cert_manager_release_name }} jetstack/{{ cert_manager_chart }} \
           --namespace {{ cert_manager_namespace }} \
           --version {{ cert_manager_chart_version }} \
           --set installCRDs=true \

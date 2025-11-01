@@ -59,7 +59,7 @@
 
     - name: Install AWS EBS CSI Driver using Helm
       shell: |
-        helm upgrade --install {{ ebs_csi_driver_release_name }} {{ ebs_csi_driver_repository }}/{{ ebs_csi_driver_chart }} \
+        helm upgrade --install {{ ebs_csi_driver_release_name }} aws-ebs-csi-driver/{{ ebs_csi_driver_chart }} \
           --namespace {{ ebs_csi_driver_namespace }} \
           --version {{ ebs_csi_driver_chart_version }} \
           --set controller.serviceAccount.create=false \

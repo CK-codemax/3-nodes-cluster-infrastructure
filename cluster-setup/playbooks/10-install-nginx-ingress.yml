@@ -45,7 +45,7 @@
 
     - name: Install NGINX Ingress Controller using Helm
       shell: |
-        helm upgrade --install {{ nginx_ingress_release_name }} {{ nginx_ingress_repository }}/{{ nginx_ingress_chart }} \
+        helm upgrade --install {{ nginx_ingress_release_name }} ingress-nginx/{{ nginx_ingress_chart }} \
           --namespace {{ nginx_ingress_namespace }} \
           --version {{ nginx_ingress_chart_version }} \
           --values /tmp/nginx-ingress-values.yaml \

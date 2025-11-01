@@ -45,7 +45,7 @@
 
     - name: Install Metrics Server using Helm
       shell: |
-        helm upgrade --install {{ metrics_server_release_name }} {{ metrics_server_repository }}/{{ metrics_server_chart }} \
+        helm upgrade --install {{ metrics_server_release_name }} metrics-server/{{ metrics_server_chart }} \
           --namespace {{ metrics_server_namespace }} \
           --version {{ metrics_server_chart_version }} \
           --values /tmp/metrics-server-values.yaml \

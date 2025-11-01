@@ -68,7 +68,7 @@
 
     - name: Install AWS EFS CSI Driver using Helm
       shell: |
-        helm upgrade --install {{ efs_csi_driver_release_name }} {{ efs_csi_driver_repository }}/{{ efs_csi_driver_chart }} \
+        helm upgrade --install {{ efs_csi_driver_release_name }} aws-efs-csi-driver/{{ efs_csi_driver_chart }} \
           --namespace {{ efs_csi_driver_namespace }} \
           --version {{ efs_csi_driver_chart_version }} \
           --set controller.serviceAccount.create=false \
