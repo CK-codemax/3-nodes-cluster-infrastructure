@@ -41,7 +41,7 @@ data "aws_subnets" "private" {
   }
   filter {
     name   = "tag:Name"
-    values = ["${var.environment}-private-*"]
+    values = ["${var.env}-private-*"]
   }
 }
 
@@ -52,7 +52,7 @@ data "aws_subnets" "public" {
   }
   filter {
     name   = "tag:Name"
-    values = ["${var.environment}-public-*"]
+    values = ["${var.env}-public-*"]
   }
 }
 

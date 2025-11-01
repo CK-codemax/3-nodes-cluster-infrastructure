@@ -1,6 +1,6 @@
 # S3 Bucket for etcd Backups
 resource "aws_s3_bucket" "etcd_backup" {
-  bucket = "${var.environment}-${var.cluster_name}-etcd-backup"
+  bucket = "${var.env}-${var.cluster_name}-etcd-backup"
 
   lifecycle {
     prevent_destroy = false
@@ -8,7 +8,7 @@ resource "aws_s3_bucket" "etcd_backup" {
 
   tags = {
     Name        = "${var.cluster_name}-etcd-backup"
-    Environment = var.environment
+    Environment = var.env
     Purpose     = "etcd-backup"
   }
 }
@@ -82,7 +82,7 @@ data "aws_iam_policy_document" "etcd_backup" {
 
 # IAM Policy for etcd backup
 resource "aws_iam_policy" "etcd_backup" {
-  name        = var.etcd_backup_policy_name != "" ? var.etcd_backup_policy_name : "${var.environment}-${var.cluster_name}-etcd-backup-policy"
+  name        = var.etcd_backup_policy_name != "" ? var.etcd_backup_policy_name : "${var.env}-${var.cluster_name}-etcd-backup-policy"
   description = "IAM policy for etcd backup to S3"
   policy      = data.aws_iam_policy_document.etcd_backup.json
 
@@ -94,7 +94,7 @@ resource "aws_iam_policy" "etcd_backup" {
 
 # IAM Role for etcd backup (to be attached to master nodes)
 resource "aws_iam_role" "etcd_backup" {
-  name = var.etcd_backup_role_name != "" ? var.etcd_backup_role_name : "${var.environment}-${var.cluster_name}-etcd-backup-role"
+  name = var.etcd_backup_role_name != "" ? var.etcd_backup_role_name : "${var.env}-${var.cluster_name}-etcd-backup-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -123,7 +123,7 @@ resource "aws_iam_role_policy_attachment" "etcd_backup" {
 
 # Instance profile for etcd backup (to attach to master nodes)
 resource "aws_iam_instance_profile" "etcd_backup" {
-  name = var.etcd_backup_instance_profile_name != "" ? var.etcd_backup_instance_profile_name : "${var.environment}-${var.cluster_name}-etcd-backup-profile"
+  name = var.etcd_backup_instance_profile_name != "" ? var.etcd_backup_instance_profile_name : "${var.env}-${var.cluster_name}-etcd-backup-profile"
   role = aws_iam_role.etcd_backup.name
 
   tags = {

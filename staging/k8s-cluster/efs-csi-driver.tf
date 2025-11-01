@@ -5,14 +5,14 @@ locals {
 
 # Create EFS file system
 resource "aws_efs_file_system" "eks" {
-  creation_token   = var.efs_creation_token != "" ? "${var.environment}-${var.cluster_name}-${var.efs_creation_token}" : "${var.environment}-${var.cluster_name}-efs"
+  creation_token   = var.efs_creation_token != "" ? "${var.env}-${var.cluster_name}-${var.efs_creation_token}" : "${var.env}-${var.cluster_name}-efs"
   performance_mode = var.efs_performance_mode
   throughput_mode  = var.efs_throughput_mode
   encrypted        = var.efs_encrypted
 
   tags = {
     Name        = var.efs_file_system_name != "" ? var.efs_file_system_name : "${var.cluster_name}-efs"
-    Environment = var.environment
+    Environment = var.env
   }
 }
 
@@ -77,7 +77,7 @@ data "aws_iam_policy_document" "efs_csi_driver_assume_role" {
 
 # IAM Role for EFS CSI Driver
 resource "aws_iam_role" "efs_csi_driver" {
-  name               = var.efs_csi_driver_role_name != "" ? var.efs_csi_driver_role_name : "${var.environment}-${var.cluster_name}-efs-csi-driver"
+  name               = var.efs_csi_driver_role_name != "" ? var.efs_csi_driver_role_name : "${var.env}-${var.cluster_name}-efs-csi-driver"
   assume_role_policy = data.aws_iam_policy_document.efs_csi_driver_assume_role.json
 
   tags = {

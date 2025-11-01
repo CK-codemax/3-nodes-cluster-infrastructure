@@ -19,7 +19,7 @@ data "aws_iam_policy_document" "ebs_csi_driver_assume_role" {
 
 # IAM Role for EBS CSI Driver
 resource "aws_iam_role" "ebs_csi_driver" {
-  name               = var.ebs_csi_driver_role_name != "" ? var.ebs_csi_driver_role_name : "${var.environment}-${var.cluster_name}-ebs-csi-driver"
+  name               = var.ebs_csi_driver_role_name != "" ? var.ebs_csi_driver_role_name : "${var.env}-${var.cluster_name}-ebs-csi-driver"
   assume_role_policy = data.aws_iam_policy_document.ebs_csi_driver_assume_role.json
 
   tags = {

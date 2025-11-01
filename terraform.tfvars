@@ -58,21 +58,3 @@ efs_file_system_name = "3-nodes-k8s-cluster-efs"
 efs_performance_mode = "generalPurpose"
 efs_throughput_mode = "bursting"
 efs_encrypted = true
-
-# ==============================================================================
-# Cert Manager Configuration
-# ==============================================================================
-cert_manager_email = "admin@example.com"
-
-# ==============================================================================
-# ArgoCD Configuration
-# ==============================================================================
-argocd_domain = "argocd.example.com"
-argocd_cert_issuer = "http-01-production"
-argocd_cert_secret_name = "argocd-tls"
-argocd_project_name = "vprofile"
-argocd_app_name = "vprofile"
-argocd_app_destination_namespace = "vprofile"
-argocd_app_source_path = "k8s"
-argocd_app_repo_url = "https://github.com/example/vprofile-app.git"
-argocd_app_repo_target_revision = "main"

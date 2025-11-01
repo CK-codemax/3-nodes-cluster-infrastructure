@@ -21,7 +21,7 @@ provider "aws" {
   default_tags {
     tags = {
       Project     = "3-nodes-Kubernetes-Cluster"
-      Environment = var.environment
+      Environment = var.env
       ManagedBy   = "Terraform"
       CreatedBy   = "Ochuko Whoro"
       Purpose     = "Learning and Testing"
