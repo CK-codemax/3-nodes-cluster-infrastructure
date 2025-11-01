@@ -123,6 +123,18 @@ resource "aws_iam_role_policy_attachment" "etcd_backup" {
   policy_arn = aws_iam_policy.etcd_backup.arn
 }
 
+# Attach AWS Load Balancer Controller policy to etcd_backup role (for master nodes)
+# This allows master nodes to create AWS load balancers for services with AWS annotations
+resource "aws_iam_role_policy_attachment" "etcd_backup_aws_lbc" {
+  role       = aws_iam_role.etcd_backup.name
+  policy_arn = aws_iam_policy.aws_lbc.arn
+
+  depends_on = [
+    aws_iam_role.etcd_backup,
+    aws_iam_policy.aws_lbc
+  ]
+}
+
 # Instance profile for etcd backup (to attach to master nodes)
 resource "aws_iam_instance_profile" "etcd_backup" {
   name = var.etcd_backup_instance_profile_name != "" ? var.etcd_backup_instance_profile_name : "${var.env}-${var.cluster_name}-etcd-backup-profile"
