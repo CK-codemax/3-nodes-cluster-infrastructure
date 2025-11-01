@@ -100,7 +100,6 @@
                     values:
                     - enabled
         dest: /tmp/aws-lbc-values.yaml
-      delegate_to: localhost
 
     - name: Install AWS Load Balancer Controller using Helm
       shell: |
