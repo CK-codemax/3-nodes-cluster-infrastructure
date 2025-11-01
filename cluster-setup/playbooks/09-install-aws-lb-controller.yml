@@ -52,6 +52,8 @@
         terraform_cluster_name: "{{ terraform_outputs.cluster_name.value }}"
         terraform_env_name: "{{ terraform_outputs.environment.value }}"
         terraform_vpc_id: "{{ terraform_outputs.vpc_id.value }}"
+        # Cluster name must match the subnet tags: kubernetes.io/cluster/${env}-${cluster_name}
+        terraform_cluster_name_tag: "{{ terraform_outputs.environment.value }}-{{ terraform_outputs.cluster_name.value }}"
 
     - name: Remove IRSA annotation (not needed for self-managed clusters using instance profiles)
       shell: |
@@ -91,7 +93,7 @@
         helm upgrade --install {{ aws_lbc_release_name }} eks/{{ aws_lbc_chart }} \
           --namespace {{ aws_lbc_namespace }} \
           --version {{ aws_lbc_chart_version }} \
-          --set clusterName={{ cluster_name }} \
+          --set clusterName={{ terraform_cluster_name_tag }} \
           --set serviceAccount.create=false \
           --set serviceAccount.name={{ aws_lbc_service_account }} \
           --set region={{ aws_region }} \
