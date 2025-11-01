@@ -57,6 +57,7 @@ cert_manager_release_name: "cert-manager"
 cert_manager_repository: "https://charts.jetstack.io"
 cert_manager_chart: "cert-manager"
 cert_manager_cluster_issuer_name: "http-01-production"
+cert_manager_email: "admin@example.com"  # Change this to your email address
 
 # Metrics Server Configuration
 metrics_server_chart_version: "3.12.1"

@@ -7,22 +7,6 @@
     - ../vars/main.yml
 
   tasks:
-    - name: Get Terraform outputs
-      shell: |
-        cd {{ terraform_dir }} && terraform output -json
-      register: terraform_outputs_json
-      changed_when: false
-      failed_when: false
-      delegate_to: localhost
-
-    - name: Parse Terraform outputs
-      set_fact:
-        terraform_outputs: "{{ terraform_outputs_json.stdout | from_json }}"
-
-    - name: Set Terraform variables from outputs
-      set_fact:
-        terraform_cert_manager_email: "{{ terraform_outputs.cert_manager_email.value }}"
-
     - name: Create ClusterIssuer manifest for Let's Encrypt Production
       shell: |
         cat <<EOF | kubectl apply -f -
@@ -32,7 +16,7 @@
           name: {{ cert_manager_cluster_issuer_name }}
         spec:
           acme:
-            email: {{ terraform_cert_manager_email }}
+            email: {{ cert_manager_email }}
             server: https://acme-v02.api.letsencrypt.org/directory
             privateKeySecretRef:
               name: {{ cert_manager_cluster_issuer_name }}-cluster-issuer
