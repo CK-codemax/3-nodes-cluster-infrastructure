@@ -7,7 +7,7 @@
 .PHONY: plan-s3 plan-vpc plan-k8s-cluster plan-all
 .PHONY: inventory ping prereq hostnames master cni workers verify kubectl-setup all
 .PHONY: aws-lb-controller nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server label-worker1
-.PHONY: argocd argocd-ingress argocd-vprofile
+.PHONY: argocd argocd-ingress argocd-vprofile vprofile-ingress
 .PHONY: cleanup-cluster clean status verify-cluster
 
 # Variables
@@ -72,6 +72,7 @@ help:
 	@echo "  make argocd            - Install ArgoCD"
 	@echo "  make argocd-ingress    - Create ArgoCD Ingress"
 	@echo "  make argocd-vprofile   - Create ArgoCD VProfile Project and App"
+	@echo "  make vprofile-ingress  - Create VProfile Ingress"
 	@echo ""
 	@echo "$(YELLOW)Complete Setup:$(NC)"
 	@echo "  make deploy-all         - Deploy infrastructure + setup cluster + addons"
@@ -356,10 +357,16 @@ argocd-vprofile:
 	@ansible-playbook cluster-setup/playbooks/18-create-argocd-vprofile.yml
 	@echo "$(GREEN)✓ ArgoCD VProfile app created$(NC)"
 
-all: ping prereq hostnames master cni workers verify kubectl-setup label-worker1 aws-lb-controller nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server argocd argocd-ingress argocd-vprofile
+vprofile-ingress:
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(YELLOW)Creating VProfile Ingress...$(NC)"
+	@ansible-playbook cluster-setup/playbooks/19-create-vprofile-ingress.yml
+	@echo "$(GREEN)✓ VProfile Ingress created$(NC)"
+
+all: ping prereq hostnames master cni workers verify kubectl-setup label-worker1 aws-lb-controller nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server argocd argocd-ingress argocd-vprofile vprofile-ingress
 	@echo "$(GREEN)✓ All playbooks completed$(NC)"
 
-setup-addons: label-worker1 aws-lb-controller nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server argocd argocd-ingress argocd-vprofile
+setup-addons: label-worker1 aws-lb-controller nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server argocd argocd-ingress argocd-vprofile vprofile-ingress
 	@echo "$(GREEN)✓ All addons installed$(NC)"
 
 # ==============================================================================

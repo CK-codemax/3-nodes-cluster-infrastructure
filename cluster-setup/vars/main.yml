@@ -75,6 +75,24 @@ argocd_chart: "argo-cd"
 argocd_values_file: "{{ playbook_dir }}/../../values/argocd-values.yml"
 argocd_ingress_name: "argocd-server-ingress"
 argocd_server_service_name: "argocd-server"
+# ArgoCD Ingress Configuration
+argocd_domain: "argo.ochukowhoro.xyz"
+argocd_cert_issuer: "http-01-production"
+argocd_cert_secret_name: "argocd-server-tls"
+# ArgoCD VProfile Application Configuration
+argocd_project_name: "vprofile"
+argocd_app_name: "vprofile-app"
+argocd_app_destination_namespace: "vprofile"
+argocd_app_source_path: "kubernetes"  # Path in the repository
+argocd_app_repo_url: "https://github.com/example/vprofile.git"  # Change this to your repository URL
+argocd_app_repo_target_revision: "main"  # Branch or tag name
+# VProfile Ingress Configuration
+vprofile_domain: "vprofile.ochukowhoro.xyz"
+vprofile_ingress_name: "vprofile-ingress"
+vprofile_service_name: "vprofile-web"  # Update this to match your VProfile service name
+vprofile_service_port: 80  # Update this to match your VProfile service port
+vprofile_cert_issuer: "http-01-production"
+vprofile_cert_secret_name: "vprofile-tls"
 
 # Helm Configuration
 helm_timeout: "15m"

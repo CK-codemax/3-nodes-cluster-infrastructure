@@ -7,34 +7,13 @@
     - ../vars/main.yml
 
   tasks:
-    - name: Get Terraform outputs
-      shell: |
-        cd {{ terraform_dir }} && terraform output -json
-      register: terraform_outputs_json
-      changed_when: false
-      failed_when: false
-      delegate_to: localhost
-
-    - name: Parse Terraform outputs
-      set_fact:
-        terraform_outputs: "{{ terraform_outputs_json.stdout | from_json }}"
-
-    - name: Set Terraform variables from outputs
-      set_fact:
-        terraform_argocd_project_name: "{{ terraform_outputs.argocd_project_name.value }}"
-        terraform_argocd_app_name: "{{ terraform_outputs.argocd_app_name.value }}"
-        terraform_argocd_app_destination_namespace: "{{ terraform_outputs.argocd_app_destination_namespace.value }}"
-        terraform_argocd_app_source_path: "{{ terraform_outputs.argocd_app_source_path.value }}"
-        terraform_argocd_app_repo_url: "{{ terraform_outputs.argocd_app_repo_url.value }}"
-        terraform_argocd_app_repo_target_revision: "{{ terraform_outputs.argocd_app_repo_target_revision.value }}"
-
     - name: Create ArgoCD AppProject manifest
       shell: |
         cat <<EOF | kubectl apply -f -
         apiVersion: argoproj.io/v1alpha1
         kind: AppProject
         metadata:
-          name: {{ terraform_argocd_project_name }}
+          name: {{ argocd_project_name }}
           namespace: {{ argocd_namespace }}
         spec:
           description: "VProfile Application Project"
@@ -54,7 +33,7 @@
 
     - name: Verify ArgoCD AppProject is created
       shell: |
-        kubectl get appproject {{ terraform_argocd_project_name }} -n {{ argocd_namespace }}
+        kubectl get appproject {{ argocd_project_name }} -n {{ argocd_namespace }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: project_status
@@ -76,17 +55,17 @@
         apiVersion: argoproj.io/v1alpha1
         kind: Application
         metadata:
-          name: {{ terraform_argocd_app_name }}
+          name: {{ argocd_app_name }}
           namespace: {{ argocd_namespace }}
         spec:
           destination:
-            namespace: {{ terraform_argocd_app_destination_namespace }}
+            namespace: {{ argocd_app_destination_namespace }}
             server: https://kubernetes.default.svc
-          project: {{ terraform_argocd_project_name }}
+          project: {{ argocd_project_name }}
           source:
-            path: {{ terraform_argocd_app_source_path }}
-            repoURL: {{ terraform_argocd_app_repo_url }}
-            targetRevision: {{ terraform_argocd_app_repo_target_revision }}
+            path: {{ argocd_app_source_path }}
+            repoURL: {{ argocd_app_repo_url }}
+            targetRevision: {{ argocd_app_repo_target_revision }}
           syncPolicy:
             automated:
               prune: true
@@ -101,7 +80,7 @@
 
     - name: Verify ArgoCD Application is created
       shell: |
-        kubectl get application {{ terraform_argocd_app_name }} -n {{ argocd_namespace }}
+        kubectl get application {{ argocd_app_name }} -n {{ argocd_namespace }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: app_status
@@ -115,7 +94,7 @@
 
     - name: Display Application details
       shell: |
-        kubectl describe application {{ terraform_argocd_app_name }} -n {{ argocd_namespace }}
+        kubectl describe application {{ argocd_app_name }} -n {{ argocd_namespace }}
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: app_details
