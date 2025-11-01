@@ -46,7 +46,8 @@ resource "aws_instance" "workers" {
   key_name              = aws_key_pair.main.key_name
   vpc_security_group_ids = [aws_security_group.workers.id]
   subnet_id             = data.terraform_remote_state.vpc.outputs.public_subnet_ids[count.index % length(data.terraform_remote_state.vpc.outputs.public_subnet_ids)]
-  iam_instance_profile  = aws_iam_instance_profile.aws_workloads.name
+  # Only attach AWS workloads instance profile to worker1 (first worker)
+  iam_instance_profile  = count.index == 0 ? aws_iam_instance_profile.aws_workloads.name : null
 
   root_block_device {
     volume_type = "gp3"

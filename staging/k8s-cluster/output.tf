@@ -17,6 +17,11 @@ output "worker_public_ips" {
   value       = aws_instance.workers[*].public_ip
 }
 
+output "worker1_private_ip" {
+  description = "Private IP address of worker1"
+  value       = aws_instance.workers[0].private_ip
+}
+
 # Outputs for Ansible playbooks
 output "aws_region" {
   description = "AWS region"

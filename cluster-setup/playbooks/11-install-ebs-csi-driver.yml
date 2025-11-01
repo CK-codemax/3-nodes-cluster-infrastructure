@@ -58,14 +58,23 @@
       failed_when: false
       when: terraform_ebs_csi_driver_role_arn is defined and terraform_ebs_csi_driver_role_arn | length > 0
 
-    - name: Label worker1 node for AWS workloads
-      shell: |
-        kubectl label node worker1 aws-workloads=enabled --overwrite
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      register: node_label
-      changed_when: "'labeled' in node_label.stdout or 'already labeled' in node_label.stderr"
-      failed_when: node_label.rc != 0 and 'already labeled' not in node_label.stderr
+    - name: Create Helm values file with node affinity for EBS CSI Driver
+      copy:
+        content: |
+          controller:
+            nodeSelector:
+              aws-workloads: enabled
+            affinity:
+              nodeAffinity:
+                requiredDuringSchedulingIgnoredDuringExecution:
+                  nodeSelectorTerms:
+                  - matchExpressions:
+                    - key: aws-workloads
+                      operator: In
+                      values:
+                      - enabled
+        dest: /tmp/ebs-csi-values.yaml
+      delegate_to: localhost
 
     - name: Install AWS EBS CSI Driver using Helm
       shell: |
@@ -74,7 +83,7 @@
           --version {{ ebs_csi_driver_chart_version }} \
           --set controller.serviceAccount.create=false \
           --set controller.serviceAccount.name={{ ebs_csi_driver_service_account }} \
-          --set controller.nodeSelector.aws-workloads=enabled \
+          --values /tmp/ebs-csi-values.yaml \
           --wait \
           --timeout {{ helm_timeout }}
       environment:
