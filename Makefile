@@ -6,7 +6,7 @@
 .PHONY: deploy-all destroy-all destroy-k8s-cluster destroy-vpc destroy-infrastructure
 .PHONY: plan-s3 plan-vpc plan-k8s-cluster plan-all
 .PHONY: inventory ping prereq hostnames master cni workers verify kubectl-setup all
-.PHONY: aws-lb-controller nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server
+.PHONY: aws-lb-controller nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server label-worker1
 .PHONY: argocd argocd-ingress argocd-vprofile
 .PHONY: cleanup-cluster clean status verify-cluster
 
@@ -285,6 +285,15 @@ kubectl-setup:
 	@ansible-playbook cluster-setup/playbooks/07-setup-kubectl-autocomplete.yml
 
 # ==============================================================================
+# Node Labeling Targets
+# ==============================================================================
+label-worker1:
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(YELLOW)Labeling worker1 node for AWS workloads...$(NC)"
+	@ansible-playbook cluster-setup/playbooks/08-label-worker1.yml
+	@echo "$(GREEN)✓ Worker1 node labeled$(NC)"
+
+# ==============================================================================
 # Addon Component Targets
 # ==============================================================================
 aws-lb-controller:
@@ -347,8 +356,11 @@ argocd-vprofile:
 	@ansible-playbook cluster-setup/playbooks/18-create-argocd-vprofile.yml
 	@echo "$(GREEN)✓ ArgoCD VProfile app created$(NC)"
 
-all: ping prereq hostnames master cni workers verify kubectl-setup aws-lb-controller nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server argocd argocd-ingress argocd-vprofile
+all: ping prereq hostnames master cni workers verify kubectl-setup label-worker1 aws-lb-controller nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server argocd argocd-ingress argocd-vprofile
 	@echo "$(GREEN)✓ All playbooks completed$(NC)"
+
+setup-addons: label-worker1 aws-lb-controller nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server argocd argocd-ingress argocd-vprofile
+	@echo "$(GREEN)✓ All addons installed$(NC)"
 
 # ==============================================================================
 # Complete Setup Process
