@@ -33,7 +33,6 @@
         terraform_aws_region: "{{ terraform_outputs.aws_region.value }}"
         terraform_cluster_name: "{{ terraform_outputs.cluster_name.value }}"
         terraform_env_name: "{{ terraform_outputs.environment.value }}"
-        terraform_ebs_csi_driver_role_arn: "{{ terraform_outputs.ebs_csi_driver_role_arn.value }}"
 
     - name: Create service account for EBS CSI Driver
       shell: |
@@ -56,7 +55,6 @@
       register: sa_annotate_remove
       changed_when: sa_annotate_remove.rc == 0
       failed_when: false
-      when: terraform_ebs_csi_driver_role_arn is defined and terraform_ebs_csi_driver_role_arn | length > 0
 
     - name: Create Helm values file with node affinity for EBS CSI Driver
       copy:

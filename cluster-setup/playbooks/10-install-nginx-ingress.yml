@@ -92,7 +92,7 @@
 
     - name: Verify NGINX Ingress Controller deployment is ready
       shell: |
-        kubectl get deployment -n {{ nginx_ingress_namespace }} {{ nginx_ingress_release_name }}-controller -o jsonpath='{.status.readyReplicas}'
+        kubectl get deployment -n {{ nginx_ingress_namespace }} {{ nginx_ingress_release_name }}-ingress-nginx-controller -o jsonpath='{.status.readyReplicas}'
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: ready_replicas
@@ -103,7 +103,7 @@
 
     - name: Display NGINX Ingress Controller deployment status
       shell: |
-        kubectl get deployment -n {{ nginx_ingress_namespace }} {{ nginx_ingress_release_name }}-controller
+        kubectl get deployment -n {{ nginx_ingress_namespace }} {{ nginx_ingress_release_name }}-ingress-nginx-controller
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: deployment_status
@@ -115,7 +115,7 @@
 
     - name: Display NGINX Ingress Controller service
       shell: |
-        kubectl get svc -n {{ nginx_ingress_namespace }} {{ nginx_ingress_release_name }}-controller
+        kubectl get svc -n {{ nginx_ingress_namespace }} {{ nginx_ingress_release_name }}-ingress-nginx-controller
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: service_status
