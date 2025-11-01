@@ -16,12 +16,6 @@ variable "environment" {
   default     = "dev"
 }
 
-variable "availability_zones" {
-  description = "Availability zones"
-  type        = list(string)
-  default     = ["us-east-1a", "us-east-1b", "us-east-1c"]
-}
-
 variable "master_instance_type" {
   description = "EC2 instance type for master nodes"
   type        = string

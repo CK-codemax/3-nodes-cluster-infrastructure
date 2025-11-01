@@ -6,7 +6,8 @@ cluster_name = "3-nodes-k8s-cluster"
 environment  = "dev"
 
 # Network Configuration
-availability_zones    = ["us-east-1a", "us-east-1b", "us-east-1c"]
+az1 = "us-east-1a"
+az2 = "us-east-1b"
 
 # Instance Configuration
 master_instance_type = "t3.medium"
