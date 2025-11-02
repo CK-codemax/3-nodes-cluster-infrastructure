@@ -71,7 +71,6 @@ help:
 	@echo "  make argocd            - Install ArgoCD"
 	@echo "  make argocd-ingress    - Create ArgoCD Ingress"
 	@echo "  make argocd-vprofile   - Create ArgoCD VProfile Project and App"
-	@echo "  make vprofile-ingress  - Create VProfile Ingress"
 	@echo "  make etcd-backup       - Setup ETCD backup to S3 (runs every 3 hours)"
 	@echo ""
 	@echo "$(YELLOW)Complete Setup:$(NC)"
@@ -351,22 +350,16 @@ argocd-vprofile:
 	@ansible-playbook cluster-setup/playbooks/18-create-argocd-vprofile.yml
 	@echo "$(GREEN)✓ ArgoCD VProfile app created$(NC)"
 
-vprofile-ingress:
-	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "$(YELLOW)Creating VProfile Ingress...$(NC)"
-	@ansible-playbook cluster-setup/playbooks/19-create-vprofile-ingress.yml
-	@echo "$(GREEN)✓ VProfile Ingress created$(NC)"
-
 etcd-backup:
 	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(YELLOW)Setting up ETCD backup to S3...$(NC)"
 	@ansible-playbook cluster-setup/playbooks/20-setup-etcd-backup.yml
 	@echo "$(GREEN)✓ ETCD backup configured$(NC)"
 
-all: ping prereq hostnames master cni workers verify kubectl-setup label-worker1 nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server argocd argocd-ingress argocd-vprofile vprofile-ingress
+all: ping prereq hostnames master cni workers verify kubectl-setup label-worker1 nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server argocd argocd-ingress argocd-vprofile
 	@echo "$(GREEN)✓ All playbooks completed$(NC)"
 
-setup-addons: label-worker1 nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server argocd argocd-ingress argocd-vprofile vprofile-ingress etcd-backup
+setup-addons: label-worker1 nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server argocd argocd-ingress argocd-vprofile etcd-backup
 	@echo "$(GREEN)✓ All addons installed$(NC)"
 
 # ==============================================================================

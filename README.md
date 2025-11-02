@@ -403,6 +403,7 @@ make vprofile-ingress       # Create VProfile Ingress
   - hostPort: Enabled (ports 80/443)
   - Access: Direct via worker node public IPs
   - No AWS Load Balancer required
+  - **DNS Configuration**: Only worker1's public IP needs to be mapped to the hostname since NGINX Ingress runs on worker1
 
 - **ArgoCD Ingress**: 
   - Domain: `argo.ochukowhoro.xyz`
@@ -411,6 +412,12 @@ make vprofile-ingress       # Create VProfile Ingress
 - **VProfile Ingress**: 
   - Domain: `vprofile.ochukowhoro.xyz`
   - TLS: Managed by Cert Manager
+
+**Important**: For ingress to work and be verified, you only need to map **worker1's public IP** to the hostname (e.g., `argo.ochukowhoro.xyz`, `vprofile.ochukowhoro.xyz`) in your DNS provider. This is because NGINX Ingress Controller runs exclusively on worker1 due to node affinity (`aws-workloads=enabled`).
+
+Example DNS A record:
+- `argo.ochukowhoro.xyz` → `3.90.107.239` (worker1 public IP)
+- `vprofile.ochukowhoro.xyz` → `3.90.107.239` (worker1 public IP)
 
 ## ⚙️ Configuration Details
 
@@ -454,6 +461,8 @@ controller:
 
 **Access**: `http://<worker-node-public-ip>` or `https://<worker-node-public-ip>`
 
+**DNS Configuration**: For ingress to work and be verified with hostname-based routing, you only need to map **worker1's public IP** to the hostname in your DNS provider. This is because NGINX Ingress Controller runs exclusively on worker1 due to node affinity (`aws-workloads=enabled`). Cert Manager will automatically verify domain ownership and issue TLS certificates for the configured hostnames.
+
 ### ArgoCD Configuration
 
 ArgoCD server is configured with insecure mode for TLS-terminated ingress:
@@ -478,7 +487,7 @@ Worker1 is labeled with `aws-workloads=enabled` to schedule AWS-dependent worklo
 
 ### SSH Access
 
-```bash
+   ```bash
 # Get IPs from Terraform output
 cd staging/k8s-cluster && terraform output
 
@@ -494,10 +503,10 @@ ssh -i k8s-cluster-key ubuntu@<worker2-public-ip>
 
 ### Kubernetes API Access
 
-```bash
+   ```bash
 # From master node
-kubectl get nodes
-kubectl get pods -A
+   kubectl get nodes
+   kubectl get pods -A
 kubectl get svc -A
 kubectl get ingress -A
 ```
@@ -508,40 +517,54 @@ Access services via worker node public IPs:
 - HTTP: `http://<worker-node-public-ip>`
 - HTTPS: `https://<worker-node-public-ip>`
 
+**DNS Configuration for Ingress**:
+For ingress to work properly with hostname-based routing, you need to configure DNS A records pointing to **worker1's public IP**:
+
+   ```bash
+# Get worker1 public IP
+cd staging/k8s-cluster && terraform output -raw worker_public_ips | head -n1
+
+# Configure DNS A records (example):
+# argo.ochukowhoro.xyz      →  <worker1-public-ip>
+# vprofile.ochukowhoro.xyz  →  <worker1-public-ip>
+```
+
+**Important**: Only worker1's public IP needs to be mapped to the hostname because NGINX Ingress Controller runs exclusively on worker1 (due to node affinity). Cert Manager will verify the domain ownership and issue TLS certificates automatically.
+
 ### ArgoCD UI Access
 
 - URL: `https://argo.ochukowhoro.xyz`
 - TLS: Managed by Cert Manager
 - Get initial admin password:
-  ```bash
+   ```bash
   kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
-  ```
+   ```
 
 ## 🐛 Troubleshooting
 
 ### Check Node Status
-```bash
+   ```bash
 kubectl get nodes
 kubectl describe node <node-name>
-```
+   ```
 
 ### Check Pod Status
-```bash
+   ```bash
 kubectl get pods -A
 kubectl describe pod <pod-name> -n <namespace>
 kubectl logs <pod-name> -n <namespace>
-```
+   ```
 
 ### Check Kubelet Configuration
-```bash
+   ```bash
 # On each node
 cat /etc/default/kubelet
 systemctl status kubelet
 journalctl -u kubelet -n 50
-```
+   ```
 
 ### Check Network Connectivity
-```bash
+   ```bash
 # Test connectivity from Ansible
 ansible all -m ping
 
@@ -553,8 +576,16 @@ kubectl get pods -n kube-system -l k8s-app=calico-node
 
 1. **Nodes not joining**: Check kubelet status and join token
 2. **Pods not starting**: Verify CNI is installed and running
-3. **Ingress not accessible**: Check security groups allow HTTP/HTTPS from internet on worker nodes
-4. **Storage issues**: Verify IAM roles have correct permissions
+3. **Ingress not accessible**: 
+   - Check security groups allow HTTP/HTTPS from internet on worker nodes
+   - Verify DNS A record points to **worker1's public IP** (not master or worker2)
+   - Ensure NGINX Ingress pods are running on worker1: `kubectl get pods -n ingress-nginx -o wide`
+4. **TLS certificates not issued**: 
+   - Verify DNS A record points to worker1's public IP
+   - Check Cert Manager pods are running: `kubectl get pods -n cert-manager`
+   - Check Certificate resources: `kubectl get certificates -A`
+   - View Certificate events: `kubectl describe certificate <cert-name> -n <namespace>`
+5. **Storage issues**: Verify IAM roles have correct permissions
 
 ## 🧹 Cleanup
 
@@ -634,13 +665,13 @@ make destroy-infrastructure
 
 ## 🔗 Useful Commands
 
-```bash
+   ```bash
 # View all Terraform outputs
 cd staging/k8s-cluster && terraform output
 
 # Check cluster status
-kubectl get nodes
-kubectl get pods -A
+   kubectl get nodes
+   kubectl get pods -A
 kubectl get svc -A
 kubectl get ingress -A
 
