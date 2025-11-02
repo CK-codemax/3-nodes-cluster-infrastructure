@@ -105,7 +105,7 @@ kubeconfig_path: "/home/ubuntu/.kube/config"
 vpc_id: "{{ terraform_vpc_id | default('') }}"
 
 # AWS VPC CNI Configuration
-aws_cni_values_file: "{{ playbook_dir }}/../../values/aws-k8s-cni-cn.yaml"
+aws_cni_values_file: "{{ playbook_dir }}/../../values/aws-k8s-cni.yaml"
 
 # etcd Backup Configuration
 etcd_backup_bucket_name: "{{ terraform_etcd_backup_bucket_name | default('') }}"
