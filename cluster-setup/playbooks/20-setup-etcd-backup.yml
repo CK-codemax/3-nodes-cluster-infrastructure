@@ -37,12 +37,17 @@
       changed_when: false
       failed_when: aws_cli_check.rc != 0
 
-    - name: Install AWS CLI if not present
+    - name: Install etcd-client package (contains etcdctl)
       apt:
-        name: awscli
+        name: etcd-client
         state: present
         update_cache: true
-      when: aws_cli_check.rc != 0
+
+    - name: Verify etcdctl is available
+      command: which etcdctl
+      register: etcdctl_path
+      changed_when: false
+      failed_when: etcdctl_path.rc != 0
 
     - name: Create etcd backup directory
       file:
@@ -74,8 +79,16 @@
           
           log "Starting etcd backup..."
           
+          # Find etcdctl binary
+          ETCDCTL_BIN=$(which etcdctl || echo "/usr/bin/etcdctl")
+          
+          if [ ! -f "${ETCDCTL_BIN}" ]; then
+            log "ERROR: etcdctl not found. Please install etcd-client package."
+            exit 1
+          fi
+          
           # Create backup snapshot
-          ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 \
+          ETCDCTL_API=3 ${ETCDCTL_BIN} --endpoints=https://127.0.0.1:2379 \
             --cacert=/etc/kubernetes/pki/etcd/ca.crt \
             --cert=/etc/kubernetes/pki/etcd/server.crt \
             --key=/etc/kubernetes/pki/etcd/server.key \
