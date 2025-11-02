@@ -7,29 +7,20 @@
     - ../vars/main.yml
 
   tasks:
-    - name: Create ArgoCD AppProject manifest
+    - name: Clone git repository
+      git:
+        repo: "{{ argocd_app_repo_url }}"
+        dest: /tmp/argocd-vprofile-repo
+        version: "{{ argocd_app_repo_target_revision }}"
+        force: yes
+
+    - name: Apply ArgoCD project and application manifests
       shell: |
-        cat <<EOF | kubectl apply -f -
-        apiVersion: argoproj.io/v1alpha1
-        kind: AppProject
-        metadata:
-          name: {{ argocd_project_name }}
-          namespace: {{ argocd_namespace }}
-        spec:
-          description: "VProfile Application Project"
-          sourceRepos:
-          - "*"
-          destinations:
-          - namespace: "*"
-            server: "*"
-          clusterResourceWhitelist:
-          - group: "*"
-            kind: "*"
-        EOF
+        cd /tmp/argocd-vprofile-repo/argo-project && kubectl apply -f .
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
-      register: project_create
-      changed_when: "'created' in project_create.stdout or 'configured' in project_create.stdout"
+      register: manifests_apply
+      changed_when: "'created' in manifests_apply.stdout or 'configured' in manifests_apply.stdout"
 
     - name: Verify ArgoCD AppProject is created
       shell: |
@@ -45,38 +36,9 @@
         var: project_status.stdout_lines
       when: project_status.rc == 0
 
-    - name: Wait for AppProject to be ready
+    - name: Wait for resources to be ready
       pause:
         seconds: 5
-
-    - name: Create ArgoCD Application manifest
-      shell: |
-        cat <<EOF | kubectl apply -f -
-        apiVersion: argoproj.io/v1alpha1
-        kind: Application
-        metadata:
-          name: {{ argocd_app_name }}
-          namespace: {{ argocd_namespace }}
-        spec:
-          destination:
-            namespace: {{ argocd_app_destination_namespace }}
-            server: https://kubernetes.default.svc
-          project: {{ argocd_project_name }}
-          source:
-            path: {{ argocd_app_source_path }}
-            repoURL: {{ argocd_app_repo_url }}
-            targetRevision: {{ argocd_app_repo_target_revision }}
-          syncPolicy:
-            automated:
-              prune: true
-              selfHeal: true
-            syncOptions:
-            - CreateNamespace=true
-        EOF
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      register: app_create
-      changed_when: "'created' in app_create.stdout or 'configured' in app_create.stdout"
 
     - name: Verify ArgoCD Application is created
       shell: |
