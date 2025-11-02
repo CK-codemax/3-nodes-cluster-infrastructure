@@ -35,7 +35,25 @@
       command: which aws
       register: aws_cli_check
       changed_when: false
-      failed_when: aws_cli_check.rc != 0
+      failed_when: false
+
+    - name: Install AWS CLI if not present
+      apt:
+        name: awscli
+        state: present
+        update_cache: true
+      when: aws_cli_check.rc != 0
+
+    - name: Verify AWS CLI installation
+      command: aws --version
+      register: aws_cli_version
+      changed_when: false
+      failed_when: aws_cli_version.rc != 0
+
+    - name: Display AWS CLI version
+      debug:
+        msg: "{{ aws_cli_version.stdout }}"
+      when: aws_cli_version.stdout is defined
 
     - name: Install etcd-client package (contains etcdctl)
       apt:
