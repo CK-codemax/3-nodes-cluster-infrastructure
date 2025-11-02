@@ -20,22 +20,77 @@ server:
   env:
     - name: ARGOCD_SERVER_INSECURE
       value: "true"
+  nodeSelector:
+    aws-workloads: enabled
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: aws-workloads
+            operator: In
+            values:
+            - enabled
 
 # Controller configuration
 controller:
   replicas: 1
+  nodeSelector:
+    aws-workloads: enabled
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: aws-workloads
+            operator: In
+            values:
+            - enabled
 
 # Repo Server configuration
 repoServer:
   replicas: 1
+  nodeSelector:
+    aws-workloads: enabled
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: aws-workloads
+            operator: In
+            values:
+            - enabled
 
 # Application Set Controller configuration
 applicationSet:
   replicas: 1
+  nodeSelector:
+    aws-workloads: enabled
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: aws-workloads
+            operator: In
+            values:
+            - enabled
 
 # Redis configuration
 redis:
   enabled: true
+  nodeSelector:
+    aws-workloads: enabled
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: aws-workloads
+            operator: In
+            values:
+            - enabled
 
 # Configs configuration
 configs:
