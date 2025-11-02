@@ -54,9 +54,7 @@ apt-get update
 apt-get install -y kubelet kubeadm kubectl
 apt-mark hold kubelet kubeadm kubectl
 
-# Configure kubelet
-echo "KUBELET_EXTRA_ARGS=\"--node-ip=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)\"" > /etc/default/kubelet
-systemctl daemon-reload
+# Enable kubelet (will be configured later by Ansible)
 systemctl enable kubelet
 
 # Install additional tools

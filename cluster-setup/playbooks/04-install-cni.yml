@@ -1,5 +1,5 @@
 ---
-- name: Install AWS VPC CNI
+- name: Install Calico CNI
   hosts: master1
   become: true
   gather_facts: true
@@ -7,42 +7,15 @@
     - ../vars/main.yml
 
   tasks:
-    - name: Copy AWS VPC CNI manifest to master node
-      copy:
-        src: "{{ aws_cni_values_file }}"
-        dest: /tmp/aws-k8s-cni.yaml
-        mode: '0644'
-
-    - name: Apply AWS VPC CNI from local values file
+    - name: Apply Calico CNI manifest
       shell: |
-        kubectl apply -f /tmp/aws-k8s-cni.yaml
+        kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
-      register: aws_cni_apply
+      register: calico_apply
 
-    - name: Display AWS VPC CNI installation output
+    - name: Display Calico installation output
       debug:
-        var: aws_cni_apply.stdout_lines
+        var: calico_apply.stdout_lines
 
-    - name: Wait for AWS VPC CNI pods to be running
-      shell: |
-        kubectl get pods -n kube-system -l k8s-app=aws-node --field-selector=status.phase=Running --no-headers | wc -l
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      register: aws_cni_pods_running
-      until: aws_cni_pods_running.stdout | int >= 3
-      retries: 30
-      delay: 10
-      changed_when: false
-
-    - name: Display AWS VPC CNI pods status
-      shell: |
-        kubectl get pods -n kube-system -l k8s-app=aws-node
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      register: aws_cni_pods_status
-      changed_when: false
-
-    - name: Show AWS VPC CNI pods status
-      debug:
-        var: aws_cni_pods_status.stdout_lines
+ 

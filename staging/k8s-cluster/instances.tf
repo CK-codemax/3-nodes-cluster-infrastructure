@@ -48,9 +48,8 @@ resource "aws_instance" "workers" {
   subnet_id             = data.terraform_remote_state.vpc.outputs.public_subnet_ids[count.index % length(data.terraform_remote_state.vpc.outputs.public_subnet_ids)]
   # Explicitly enable public IP for internet-facing NLB traffic
   associate_public_ip_address = true
-  # Attach AWS CNI instance profile to all worker nodes (for AWS VPC CNI)
   # Attach AWS workloads instance profile only to worker1 (for AWS Load Balancer Controller, EBS/EFS CSI, etc.)
-  iam_instance_profile = count.index == 0 ? aws_iam_instance_profile.aws_workloads.name : aws_iam_instance_profile.aws_cni.name
+  iam_instance_profile = count.index == 0 ? aws_iam_instance_profile.aws_workloads.name : null
 
   root_block_device {
     volume_type = "gp3"
