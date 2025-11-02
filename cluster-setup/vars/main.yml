@@ -76,7 +76,7 @@ argocd_values_file: "{{ playbook_dir }}/../../values/argocd-values.yml"
 argocd_ingress_name: "argocd-server-ingress"
 argocd_server_service_name: "argocd-server"
 # ArgoCD Ingress Configuration
-argocd_domain: "test.ochukowhoro.xyz"
+argocd_domain: "argo.ochukowhoro.xyz"
 argocd_cert_issuer: "http-01-production"
 argocd_cert_secret_name: "argocd-server-tls"
 # ArgoCD VProfile Application Configuration
