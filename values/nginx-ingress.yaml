@@ -3,17 +3,15 @@ controller:
   ingressClassResource:
     name: external-nginx
   service:
-    annotations:
-      service.beta.kubernetes.io/aws-load-balancer-type: external
-      service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
-      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
-      # Health check configuration for NLB
-      service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: TCP
-      service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "80"
-      service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: "10"
-      service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout: "6"
-      service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: "2"
-      service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold: "3"
+    type: NodePort
+    nodePorts:
+      http: 30080
+      https: 30443
+  hostPort:
+    enabled: true
+    ports:
+      http: 80
+      https: 443
   nodeSelector:
     aws-workloads: enabled
   affinity:

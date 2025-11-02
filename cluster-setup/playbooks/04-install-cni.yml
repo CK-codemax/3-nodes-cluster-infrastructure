@@ -18,26 +18,4 @@
       debug:
         var: calico_apply.stdout_lines
 
-    - name: Wait for Calico pods to be running
-      shell: |
-        kubectl get pods -n kube-system -l k8s-app=calico-node --field-selector=status.phase=Running --no-headers | wc -l
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      register: calico_pods_running
-      until: calico_pods_running.stdout | int >= 3
-      retries: 30
-      delay: 10
-      changed_when: false
-
-    - name: Display Calico pods status
-      shell: |
-        kubectl get pods -n kube-system -l k8s-app=calico-node
-      environment:
-        KUBECONFIG: "{{ kubeconfig_path }}"
-      register: calico_pods_status
-      changed_when: false
-
-    - name: Show Calico pods status
-      debug:
-        var: calico_pods_status.stdout_lines
-
+ 
