@@ -7,12 +7,50 @@
     - ../vars/main.yml
 
   tasks:
+    - name: Remove existing repository directory if it exists
+      file:
+        path: /tmp/argocd-vprofile-repo
+        state: absent
+
     - name: Clone git repository
       git:
         repo: "{{ argocd_app_repo_url }}"
         dest: /tmp/argocd-vprofile-repo
         version: "{{ argocd_app_repo_target_revision }}"
         force: yes
+
+    - name: Display repository contents
+      shell: |
+        ls -la /tmp/argocd-vprofile-repo/
+        echo "---"
+        if [ -d /tmp/argocd-vprofile-repo/argo-project ]; then
+          echo "argo-project directory contents:"
+          ls -la /tmp/argocd-vprofile-repo/argo-project/
+        fi
+      register: repo_contents
+      changed_when: false
+
+    - name: Show repository contents
+      debug:
+        var: repo_contents.stdout_lines
+
+    - name: Display Application manifest content
+      shell: |
+        if [ -f /tmp/argocd-vprofile-repo/argo-project/vprofile-app.yaml ]; then
+          cat /tmp/argocd-vprofile-repo/argo-project/vprofile-app.yaml
+        elif [ -f /tmp/argocd-vprofile-repo/argo-project/application.yaml ]; then
+          cat /tmp/argocd-vprofile-repo/argo-project/application.yaml
+        else
+          find /tmp/argocd-vprofile-repo -name "*.yaml" -o -name "*.yml" | head -5
+        fi
+      register: manifest_content
+      changed_when: false
+      failed_when: false
+
+    - name: Show Application manifest content
+      debug:
+        var: manifest_content.stdout_lines
+      when: manifest_content.stdout_lines is defined
 
     - name: Apply ArgoCD project and application manifests
       shell: |
