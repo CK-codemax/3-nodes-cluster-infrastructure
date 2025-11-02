@@ -6,8 +6,8 @@
 .PHONY: deploy-all destroy-all destroy-k8s-cluster destroy-vpc destroy-infrastructure
 .PHONY: plan-s3 plan-vpc plan-k8s-cluster plan-all
 .PHONY: inventory ping prereq hostnames master cni workers verify kubectl-setup all
-.PHONY: aws-lb-controller nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server label-worker1
-.PHONY: argocd argocd-ingress argocd-vprofile vprofile-ingress
+.PHONY: nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server label-worker1
+.PHONY: argocd argocd-ingress argocd-vprofile vprofile-ingress etcd-backup
 .PHONY: cleanup-cluster clean status verify-cluster
 
 # Variables
@@ -62,7 +62,6 @@ help:
 	@echo "  make all           - Run all core Ansible playbooks"
 	@echo ""
 	@echo "$(YELLOW)Addon Components (Ansible):$(NC)"
-	@echo "  make aws-lb-controller - Install AWS Load Balancer Controller"
 	@echo "  make nginx-ingress     - Install NGINX Ingress Controller"
 	@echo "  make ebs-csi           - Install EBS CSI Driver"
 	@echo "  make efs-csi           - Install EFS CSI Driver"
@@ -73,6 +72,7 @@ help:
 	@echo "  make argocd-ingress    - Create ArgoCD Ingress"
 	@echo "  make argocd-vprofile   - Create ArgoCD VProfile Project and App"
 	@echo "  make vprofile-ingress  - Create VProfile Ingress"
+	@echo "  make etcd-backup       - Setup ETCD backup to S3 (runs every 3 hours)"
 	@echo ""
 	@echo "$(YELLOW)Complete Setup:$(NC)"
 	@echo "  make deploy-all         - Deploy infrastructure + setup cluster + addons"
@@ -297,12 +297,6 @@ label-worker1:
 # ==============================================================================
 # Addon Component Targets
 # ==============================================================================
-aws-lb-controller:
-	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "$(YELLOW)Installing AWS Load Balancer Controller...$(NC)"
-	@ansible-playbook cluster-setup/playbooks/09-install-aws-lb-controller.yml
-	@echo "$(GREEN)✓ AWS Load Balancer Controller installed$(NC)"
-
 nginx-ingress:
 	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(YELLOW)Installing NGINX Ingress Controller...$(NC)"
@@ -363,10 +357,16 @@ vprofile-ingress:
 	@ansible-playbook cluster-setup/playbooks/19-create-vprofile-ingress.yml
 	@echo "$(GREEN)✓ VProfile Ingress created$(NC)"
 
-all: ping prereq hostnames master cni workers verify kubectl-setup label-worker1 aws-lb-controller nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server argocd argocd-ingress argocd-vprofile vprofile-ingress
+etcd-backup:
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(YELLOW)Setting up ETCD backup to S3...$(NC)"
+	@ansible-playbook cluster-setup/playbooks/20-setup-etcd-backup.yml
+	@echo "$(GREEN)✓ ETCD backup configured$(NC)"
+
+all: ping prereq hostnames master cni workers verify kubectl-setup label-worker1 nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server argocd argocd-ingress argocd-vprofile vprofile-ingress
 	@echo "$(GREEN)✓ All playbooks completed$(NC)"
 
-setup-addons: label-worker1 aws-lb-controller nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server argocd argocd-ingress argocd-vprofile vprofile-ingress
+setup-addons: label-worker1 nginx-ingress ebs-csi efs-csi cert-manager cluster-issuer metrics-server argocd argocd-ingress argocd-vprofile vprofile-ingress etcd-backup
 	@echo "$(GREEN)✓ All addons installed$(NC)"
 
 # ==============================================================================

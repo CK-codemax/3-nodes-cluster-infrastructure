@@ -1,0 +1,203 @@
+---
+- name: Setup ETCD Backup Cron Job on Master1
+  hosts: master1
+  become: true
+  gather_facts: true
+  vars_files:
+    - ../vars/main.yml
+
+  tasks:
+    - name: Get etcd backup bucket name from Terraform output
+      shell: |
+        cd {{ terraform_dir }} && terraform output -raw etcd_backup_bucket_name
+      register: etcd_bucket_output
+      changed_when: false
+      delegate_to: localhost
+      failed_when: etcd_bucket_output.rc != 0
+
+    - name: Set etcd backup bucket name
+      set_fact:
+        etcd_backup_bucket: "{{ etcd_bucket_output.stdout | default(etcd_backup_bucket_name) }}"
+
+    - name: Get AWS region from Terraform output
+      shell: |
+        cd {{ terraform_dir }} && terraform output -raw aws_region
+      register: aws_region_output
+      changed_when: false
+      delegate_to: localhost
+      failed_when: aws_region_output.rc != 0
+
+    - name: Set AWS region
+      set_fact:
+        aws_region: "{{ aws_region_output.stdout | default(aws_region) }}"
+
+    - name: Verify AWS CLI is installed
+      command: which aws
+      register: aws_cli_check
+      changed_when: false
+      failed_when: aws_cli_check.rc != 0
+
+    - name: Install AWS CLI if not present
+      apt:
+        name: awscli
+        state: present
+        update_cache: true
+      when: aws_cli_check.rc != 0
+
+    - name: Create etcd backup directory
+      file:
+        path: /var/backups/etcd
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Create etcd backup script
+      copy:
+        dest: /usr/local/bin/etcd-backup.sh
+        content: |
+          #!/bin/bash
+          set -euo pipefail
+          
+          # Configuration
+          ETCD_BACKUP_DIR="/var/backups/etcd"
+          S3_BUCKET="{{ etcd_backup_bucket }}"
+          AWS_REGION="{{ aws_region }}"
+          TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
+          BACKUP_FILE="${ETCD_BACKUP_DIR}/etcd-${TIMESTAMP}.db"
+          LOG_FILE="/var/log/etcd-backup.log"
+          
+          # Log function
+          log() {
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "${LOG_FILE}"
+          }
+          
+          log "Starting etcd backup..."
+          
+          # Create backup snapshot
+          ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 \
+            --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+            --cert=/etc/kubernetes/pki/etcd/server.crt \
+            --key=/etc/kubernetes/pki/etcd/server.key \
+            snapshot save "${BACKUP_FILE}" 2>&1 | tee -a "${LOG_FILE}"
+          
+          if [ $? -eq 0 ]; then
+            log "Backup snapshot created: ${BACKUP_FILE}"
+            
+            # Upload to S3
+            log "Uploading backup to S3: s3://${S3_BUCKET}/etcd-backups/"
+            aws s3 cp "${BACKUP_FILE}" "s3://${S3_BUCKET}/etcd-backups/" \
+              --region "${AWS_REGION}" 2>&1 | tee -a "${LOG_FILE}"
+            
+            if [ $? -eq 0 ]; then
+              log "Backup uploaded successfully to S3"
+              
+              # Delete local backup file after successful upload
+              rm -f "${BACKUP_FILE}"
+              log "Local backup file deleted after successful upload"
+            else
+              log "ERROR: Failed to upload backup to S3. Keeping local backup file."
+              exit 1
+            fi
+          else
+            log "ERROR: Failed to create etcd snapshot"
+            exit 1
+          fi
+          
+          # Delete local backups older than 7 days (fallback)
+          find "${ETCD_BACKUP_DIR}" -type f -name "etcd-*.db" -mtime +7 -delete 2>/dev/null || true
+          
+          log "ETCD backup completed successfully"
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Create log file with proper permissions
+      file:
+        path: /var/log/etcd-backup.log
+        state: touch
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Setup etcd backup cron job to run every 3 hours
+      cron:
+        name: "ETCD backup to S3"
+        minute: "0"
+        hour: "*/3"
+        user: root
+        job: "/usr/local/bin/etcd-backup.sh >> /var/log/etcd-backup.log 2>&1"
+        state: present
+
+    - name: Verify cron job setup
+      shell: crontab -l
+      register: cron_list
+      changed_when: false
+
+    - name: Display cron job
+      debug:
+        var: cron_list.stdout_lines
+      when: cron_list.stdout_lines is defined
+
+    - name: Test etcd backup script manually
+      shell: /usr/local/bin/etcd-backup.sh
+      register: test_backup
+      failed_when: false
+      changed_when: false
+
+    - name: Display test backup result
+      debug:
+        msg: "Test backup {{ 'successful' if test_backup.rc == 0 else 'failed' }}"
+        var: test_backup.stdout_lines
+      when: test_backup is defined
+
+    - name: Verify backup file was uploaded to S3
+      shell: |
+        aws s3 ls s3://{{ etcd_backup_bucket }}/etcd-backups/ --region {{ aws_region }} | tail -5
+      register: s3_backups
+      changed_when: false
+      failed_when: false
+      when: test_backup.rc == 0
+
+    - name: Display S3 backups
+      debug:
+        var: s3_backups.stdout_lines
+      when: s3_backups is defined and s3_backups.stdout_lines is defined
+
+    - name: Display setup completion
+      debug:
+        msg: |
+          ETCD backup cron job setup completed on {{ inventory_hostname }}!
+          
+          Configuration:
+          - Backup Script: /usr/local/bin/etcd-backup.sh
+          - Backup Directory: /var/backups/etcd/
+          - S3 Bucket: s3://{{ etcd_backup_bucket }}/etcd-backups/
+          - AWS Region: {{ aws_region }}
+          - Log File: /var/log/etcd-backup.log
+          - Schedule: Every 3 hours (at :00, :03, :06, :09, :12, :15, :18, :21)
+          - User: root
+          - Local Retention: 7 days (if upload fails)
+          
+          The cron job will automatically:
+          1. Run every 3 hours
+          2. Create an etcd snapshot with timestamp
+          3. Upload backup to S3 bucket
+          4. Delete local backup after successful upload
+          5. Keep local backups for 7 days if upload fails
+          6. Log all operations to /var/log/etcd-backup.log
+          
+          To verify:
+          1. SSH to master1: ssh -i k8s-cluster-key ubuntu@<master-ip>
+          2. Check cron jobs: sudo crontab -l
+          3. View logs: sudo tail -f /var/log/etcd-backup.log
+          4. Check S3 backups: aws s3 ls s3://{{ etcd_backup_bucket }}/etcd-backups/ --region {{ aws_region }}
+          5. Wait 3 hours and check for new backup
+          
+          To manually run backup:
+          sudo /usr/local/bin/etcd-backup.sh
+          
+          To restore from backup:
+          1. Download from S3: aws s3 cp s3://{{ etcd_backup_bucket }}/etcd-backups/etcd-YYYY-MM-DD_HH-MM-SS.db ./
+          2. Restore: ETCDCTL_API=3 etcdctl snapshot restore etcd-YYYY-MM-DD_HH-MM-SS.db
+
