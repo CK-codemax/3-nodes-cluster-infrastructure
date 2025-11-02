@@ -148,8 +148,12 @@
     - name: Display test backup result
       debug:
         msg: "Test backup {{ 'successful' if test_backup.rc == 0 else 'failed' }}"
-        var: test_backup.stdout_lines
       when: test_backup is defined
+
+    - name: Display test backup output
+      debug:
+        var: test_backup.stdout_lines
+      when: test_backup is defined and test_backup.stdout_lines is defined
 
     - name: Verify backup file was uploaded to S3
       shell: |
