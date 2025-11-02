@@ -14,8 +14,12 @@ server:
     type: ClusterIP
   ingress:
     enabled: false  # We'll create ingress separately
-  # Enable insecure mode for development (optional)
-  # insecure: true
+  # Enable insecure mode for TLS-terminated ingress
+  insecure: true
+  # Environment variables
+  env:
+    - name: ARGOCD_SERVER_INSECURE
+      value: "true"
 
 # Controller configuration
 controller:
