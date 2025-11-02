@@ -75,7 +75,7 @@ resource "aws_iam_role" "aws_workloads_instance_profile" {
 
   tags = {
     Name        = "${var.cluster_name}-aws-workloads-instance-profile-role"
-    Description = "Combined IAM role for all AWS workloads self-managed cluster (worker1 only)"
+    Description = "Combined IAM role for all AWS workloads self-managed cluster worker1 only"
   }
 }
 
