@@ -132,6 +132,15 @@ resource "aws_iam_role_policy_attachment" "etcd_backup_cni" {
   depends_on = [aws_iam_role.etcd_backup]
 }
 
+# Attach AmazonEC2ContainerRegistryReadOnly policy to etcd_backup role (for master nodes)
+# This allows master nodes to pull images from ECR
+resource "aws_iam_role_policy_attachment" "etcd_backup_ecr" {
+  role       = aws_iam_role.etcd_backup.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+
+  depends_on = [aws_iam_role.etcd_backup]
+}
+
 # Attach AWS Load Balancer Controller policy to etcd_backup role (for master nodes)
 # This allows master nodes to create AWS load balancers for services with AWS annotations
 resource "aws_iam_role_policy_attachment" "etcd_backup_aws_lbc" {

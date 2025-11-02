@@ -35,6 +35,15 @@ resource "aws_iam_role_policy_attachment" "aws_cni" {
   depends_on = [aws_iam_role.aws_cni_instance_profile]
 }
 
+# Attach AmazonEC2ContainerRegistryReadOnly policy for AWS CNI role (for worker nodes)
+# This allows worker nodes to pull images from ECR
+resource "aws_iam_role_policy_attachment" "aws_cni_ecr" {
+  role       = aws_iam_role.aws_cni_instance_profile.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+
+  depends_on = [aws_iam_role.aws_cni_instance_profile]
+}
+
 # Instance profile for AWS CNI (attached to all worker nodes)
 resource "aws_iam_instance_profile" "aws_cni" {
   name = "${var.env}-${var.cluster_name}-aws-cni-instance-profile"
@@ -83,6 +92,15 @@ resource "aws_iam_role" "aws_workloads_instance_profile" {
 resource "aws_iam_role_policy_attachment" "aws_workloads_cni" {
   role       = aws_iam_role.aws_workloads_instance_profile.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+
+  depends_on = [aws_iam_role.aws_workloads_instance_profile]
+}
+
+# Attach AmazonEC2ContainerRegistryReadOnly policy for AWS workloads role (for worker1)
+# This allows worker1 to pull images from ECR
+resource "aws_iam_role_policy_attachment" "aws_workloads_ecr" {
+  role       = aws_iam_role.aws_workloads_instance_profile.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 
   depends_on = [aws_iam_role.aws_workloads_instance_profile]
 }
