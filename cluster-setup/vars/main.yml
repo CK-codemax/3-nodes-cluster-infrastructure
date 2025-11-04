@@ -82,7 +82,7 @@ argocd_cert_secret_name: "argocd-server-tls"
 # ArgoCD VProfile Application Configuration
 argocd_project_name: "vprofile"
 argocd_app_name: "vprofile-app"
-argocd_app_repo_url: "https://github.com/CK-codemax/argo-project-defs.git"  # Change this to your repository URL
+argocd_app_repo_url: "https://github.com/OchukoWH/argo-project-defs.git"  # Change this to your repository URL
 argocd_app_repo_target_revision: "vprofile-test"  # Branch or tag name
 # VProfile Ingress Configuration
 vprofile_domain: "vprofile-test.ochukowhoro.xyz"
