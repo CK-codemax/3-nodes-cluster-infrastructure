@@ -1,6 +1,42 @@
 # 3-Node Kubernetes Cluster Infrastructure on AWS
 
-A complete, production-ready Kubernetes cluster setup on AWS using Terraform for infrastructure provisioning and Ansible for cluster configuration. This setup creates a self-managed Kubernetes cluster with Calico CNI, NGINX Ingress, storage drivers, and GitOps capabilities.
+A complete, production-ready Kubernetes cluster setup on AWS using Terraform for infrastructure provisioning and Ansible for cluster configuration. This setup creates a self-managed Kubernetes cluster with Calico CNI, NGINX Ingress, storage drivers, GitOps capabilities, and automated etcd backups.
+
+## 🎯 What We're Doing
+
+This project automates the creation and management of a **self-managed Kubernetes cluster** on AWS infrastructure. Here's what it accomplishes:
+
+### Infrastructure Provisioning (Terraform)
+1. **Network Setup**: Creates a VPC with public subnets, Internet Gateway, and route tables
+2. **Compute Resources**: Provisions 3 EC2 instances (1 master + 2 worker nodes) with proper security groups
+3. **IAM Configuration**: Sets up IAM roles and policies for AWS service integration (EBS, EFS, Load Balancer Controller, etcd backups)
+4. **Storage**: Creates an S3 bucket for etcd backups and an EFS file system for shared storage
+5. **Security**: Configures security groups with least-privilege access rules
+
+### Kubernetes Cluster Setup (Ansible)
+1. **Node Preparation**: Configures all nodes with containerd, kubelet, kubeadm, and kubectl
+2. **Cluster Initialization**: Initializes the master node with kubeadm and joins worker nodes
+3. **Networking**: Installs Calico CNI for pod-to-pod communication
+4. **Addons Deployment**: Installs essential Kubernetes addons:
+   - **NGINX Ingress Controller** for external traffic routing
+   - **EBS CSI Driver** for dynamic block storage provisioning
+   - **EFS CSI Driver** for shared file storage
+   - **Cert Manager** with Let's Encrypt integration for TLS certificates
+   - **Metrics Server** for resource monitoring
+   - **ArgoCD** for GitOps-based continuous deployment
+
+### Data Protection & Backup
+- **Automated etcd Backups**: Configures automated backups of the Kubernetes etcd datastore to S3 every 3 hours
+- **Backup Retention**: Backups are retained for 90 days (configurable) with versioning enabled
+- **Disaster Recovery**: Enables full cluster recovery from etcd snapshots stored in S3
+
+### Key Features
+- ✅ **Production-Ready**: Includes security hardening, proper IAM roles, and encrypted storage
+- ✅ **Automated**: End-to-end automation with Terraform and Ansible
+- ✅ **Cost-Optimized**: Uses direct node access instead of AWS Load Balancers
+- ✅ **Secure**: Encrypted backups, least-privilege IAM policies, and proper security group rules
+- ✅ **Scalable**: Architecture supports easy addition of more worker nodes
+- ✅ **Disaster Recovery**: Automated etcd backups ensure cluster state can be restored
 
 ## 📋 Table of Contents
 
@@ -10,6 +46,7 @@ A complete, production-ready Kubernetes cluster setup on AWS using Terraform for
 - [Detailed Setup Steps](#detailed-setup-steps)
 - [Infrastructure Components](#infrastructure-components)
 - [Kubernetes Components](#kubernetes-components)
+- [ETCD Backup Configuration](#etcd-backup-configuration)
 - [Configuration Details](#configuration-details)
 - [Accessing the Cluster](#accessing-the-cluster)
 - [Troubleshooting](#troubleshooting)
@@ -88,7 +125,14 @@ sudo dnf install make ansible terraform
 # Step 1: Setup infrastructure (keys + terraform + inventory)
 make setup-infra
 
-# Step 2: Edit cluster-setup/inventory/hosts.yml with actual IPs from terraform output
+# Step 2: Update hosts.yml and vars/main.yml with actual IPs from Terraform outputs
+# Option 1: Manual update
+# Edit cluster-setup/inventory/hosts.yml with IPs from: cd staging/k8s-cluster && terraform output
+# Note: vars/main.yml uses Terraform outputs dynamically, so it doesn't need manual updates
+
+# Option 2: Automatic update (if update-config target exists)
+# make update-config
+
 # Step 3: Complete cluster setup with all addons
 make setup-cluster
 make setup-addons
@@ -102,7 +146,13 @@ make keys                    # Generate SSH key pair
 make deploy-infrastructure   # Deploy VPC and EC2 instances
 make inventory              # Create inventory file template
 
-# Edit cluster-setup/inventory/hosts.yml with actual IPs
+# IMPORTANT: Update hosts.yml with actual IPs from Terraform outputs
+# Option 1: Manual update
+# Edit cluster-setup/inventory/hosts.yml with IPs from: cd staging/k8s-cluster && terraform output
+# Note: vars/main.yml uses Terraform outputs dynamically, so it doesn't need manual updates
+
+# Option 2: Automatic update (if update-config target exists)
+# make update-config
 
 # Cluster Setup
 make ping                   # Test connectivity
@@ -126,6 +176,7 @@ make argocd                 # Install ArgoCD
 make argocd-ingress         # Create ArgoCD Ingress
 make argocd-vprofile        # Create ArgoCD VProfile app
 make vprofile-ingress       # Create VProfile Ingress
+make etcd-backup            # Setup automated etcd backups to S3
 ```
 
 ## 📚 Detailed Setup Steps
@@ -153,6 +204,53 @@ make vprofile-ingress       # Create VProfile Ingress
   - Worker1 IAM Role: `aws_workloads` (includes AWS Load Balancer Controller, EBS/EFS CSI policies)
   - Worker2 IAM Role: None (no IAM instance profile)
   - Security Group: Allows SSH, HTTP/HTTPS from internet (0.0.0.0/0), kubelet from masters, NodePort range from VPC
+
+**Important: After Infrastructure Deployment**
+
+After running `make deploy-infrastructure` or `make setup-infra`, you **must** update `cluster-setup/inventory/hosts.yml` with the actual IP addresses from Terraform outputs before running `make all` or `make setup-cluster`:
+
+```bash
+# Get IPs from Terraform outputs
+cd staging/k8s-cluster && terraform output
+
+# Update cluster-setup/inventory/hosts.yml with the IPs:
+# - master1: <master-public-ip> (from master_public_ips output)
+# - worker1: <worker1-public-ip> (first IP from worker_public_ips output)
+# - worker2: <worker2-public-ip> (second IP from worker_public_ips output)
+
+# Note: vars/main.yml uses Terraform outputs dynamically at runtime,
+# so it doesn't need manual updates - it will automatically fetch
+# values like worker1_private_ip, etcd_backup_bucket_name, etc.
+# from Terraform outputs when playbooks run.
+```
+
+**Example hosts.yml:**
+```yaml
+all:
+  hosts:
+    master1:
+      ansible_host: 3.87.159.233
+    worker1:
+      ansible_host: 3.90.107.239
+    worker2:
+      ansible_host: 3.237.185.16
+  children:
+    masters:
+      hosts:
+        master1:
+      vars:
+        ansible_user: ubuntu
+        ansible_ssh_private_key_file: k8s-cluster-key
+        ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+    workers:
+      hosts:
+        worker1:
+        worker2:
+      vars:
+        ansible_user: ubuntu
+        ansible_ssh_private_key_file: k8s-cluster-key
+        ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+```
 
 #### 1.4 Security Groups
 
@@ -322,6 +420,13 @@ make vprofile-ingress       # Create VProfile Ingress
 - Domain: `vprofile.ochukowhoro.xyz`
 - TLS: Managed by Cert Manager
 
+#### 4.11 ETCD Backup (`20-setup-etcd-backup.yml`)
+- Installs etcd-client package on master node
+- Creates backup script `/usr/local/bin/etcd-backup.sh`
+- Configures cron job to run backups every 3 hours
+- Backups are automatically uploaded to S3 bucket
+- See [ETCD Backup Configuration](#etcd-backup-configuration) for detailed documentation
+
 ## 🛠️ Infrastructure Components
 
 ### Terraform Modules
@@ -418,6 +523,241 @@ make vprofile-ingress       # Create VProfile Ingress
 Example DNS A record:
 - `argo.ochukowhoro.xyz` → `3.90.107.239` (worker1 public IP)
 - `vprofile.ochukowhoro.xyz` → `3.90.107.239` (worker1 public IP)
+
+## 💾 ETCD Backup Configuration
+
+The cluster includes automated etcd backup functionality to protect the Kubernetes cluster state. etcd stores all cluster configuration, secrets, and resource definitions, making backups critical for disaster recovery.
+
+### Overview
+
+**What is etcd?**
+- etcd is the distributed key-value store that Kubernetes uses to store all cluster state data
+- Contains cluster configuration, pod definitions, service endpoints, secrets, ConfigMaps, and more
+- Backing up etcd is essential for cluster disaster recovery
+
+**Why Backup etcd?**
+- **Disaster Recovery**: Restore cluster state after node failures or data corruption
+- **Migration**: Move cluster configurations to new infrastructure
+- **Compliance**: Meet backup and recovery requirements
+- **Safety**: Protect against accidental cluster deletions or misconfigurations
+
+### Infrastructure Components
+
+The etcd backup system consists of:
+
+1. **S3 Bucket** (`staging/k8s-cluster/etcd-backup-s3.tf`):
+   - Automatically created during infrastructure deployment
+   - Bucket name: `{env}-{cluster_name}-etcd-backup`
+   - Features:
+     - **Versioning**: Enabled for backup history
+     - **Encryption**: AES256 server-side encryption
+     - **Public Access**: Blocked for security
+     - **Lifecycle Policy**: Backups retained for 90 days (configurable via `etcd_backup_retention_days` variable)
+
+2. **IAM Role** (`etcd_backup` role):
+   - Attached to the master node via instance profile
+   - Permissions:
+     - `s3:PutObject` - Upload backups to S3
+     - `s3:GetObject` - Download backups for restore
+     - `s3:DeleteObject` - Manage backup lifecycle
+     - `s3:ListBucket` - List existing backups
+
+### Backup Configuration
+
+The backup system is configured via Ansible playbook (`cluster-setup/playbooks/20-setup-etcd-backup.yml`):
+
+**Backup Script** (`/usr/local/bin/etcd-backup.sh`):
+- Location: Master node (`master1`)
+- Functionality:
+  1. Creates etcd snapshot using `etcdctl snapshot save`
+  2. Uploads snapshot to S3 bucket
+  3. Deletes local backup after successful upload
+  4. Logs all operations to `/var/log/etcd-backup.log`
+  5. Retains local backups for 7 days if S3 upload fails
+
+**Backup Schedule**:
+- **Frequency**: Every 3 hours
+- **Cron Schedule**: `0 */3 * * *` (runs at :00, :03, :06, :09, :12, :15, :18, :21)
+- **User**: root
+- **Log File**: `/var/log/etcd-backup.log`
+
+**Backup Process**:
+```
+1. Creates timestamped snapshot: etcd-YYYY-MM-DD_HH-MM-SS.db
+2. Uploads to S3: s3://{bucket}/etcd-backups/
+3. Verifies upload success
+4. Deletes local backup if upload succeeds
+5. Keeps local backup if upload fails (for troubleshooting)
+```
+
+### Setup Instructions
+
+**During Initial Setup**:
+The etcd backup is included in the `setup-addons` target:
+
+```bash
+# Setup all addons including etcd backup
+make setup-addons
+
+# Or setup etcd backup individually
+make etcd-backup
+```
+
+**Manual Setup**:
+```bash
+# Run the etcd backup playbook directly
+ansible-playbook cluster-setup/playbooks/20-setup-etcd-backup.yml
+```
+
+### Verification
+
+**Check Cron Job**:
+```bash
+# SSH to master node
+ssh -i k8s-cluster-key ubuntu@<master-public-ip>
+
+# View cron jobs
+sudo crontab -l
+
+# Check backup logs
+sudo tail -f /var/log/etcd-backup.log
+```
+
+**List S3 Backups**:
+```bash
+# Get bucket name from Terraform output
+cd staging/k8s-cluster
+BUCKET=$(terraform output -raw etcd_backup_bucket_name)
+REGION=$(terraform output -raw aws_region)
+
+# List backups
+aws s3 ls s3://${BUCKET}/etcd-backups/ --region ${REGION}
+```
+
+**Manual Backup Test**:
+```bash
+# SSH to master node
+ssh -i k8s-cluster-key ubuntu@<master-public-ip>
+
+# Run backup manually
+sudo /usr/local/bin/etcd-backup.sh
+
+# Check logs
+sudo tail -20 /var/log/etcd-backup.log
+```
+
+### Restore from Backup
+
+**Step 1: Download Backup from S3**
+```bash
+# Get bucket name and region
+cd staging/k8s-cluster
+BUCKET=$(terraform output -raw etcd_backup_bucket_name)
+REGION=$(terraform output -raw aws_region)
+
+# List available backups
+aws s3 ls s3://${BUCKET}/etcd-backups/ --region ${REGION}
+
+# Download specific backup
+aws s3 cp s3://${BUCKET}/etcd-backups/etcd-2024-01-15_12-00-00.db ./ --region ${REGION}
+```
+
+**Step 2: Restore etcd Snapshot**
+```bash
+# SSH to master node
+ssh -i k8s-cluster-key ubuntu@<master-public-ip>
+
+# Stop etcd and kubelet
+sudo systemctl stop kubelet
+sudo systemctl stop etcd
+
+# Restore snapshot (replace with your backup file)
+sudo ETCDCTL_API=3 etcdctl snapshot restore etcd-2024-01-15_12-00-00.db \
+  --data-dir=/var/lib/etcd-backup
+
+# Update etcd data directory (if needed)
+# Edit /etc/kubernetes/manifests/etcd.yaml to point to restored data
+
+# Restart services
+sudo systemctl start etcd
+sudo systemctl start kubelet
+```
+
+**Note**: Full cluster restore requires careful coordination and may require recreating the cluster. Consult Kubernetes documentation for complete disaster recovery procedures.
+
+### Backup Retention
+
+- **S3 Retention**: 90 days (configurable via Terraform variable `etcd_backup_retention_days`)
+- **Local Retention**: 7 days (if S3 upload fails)
+- **Versioning**: Enabled for additional protection
+
+### Troubleshooting
+
+**Backup Not Running**:
+```bash
+# Check cron service
+sudo systemctl status cron
+
+# Check cron logs
+sudo tail -f /var/log/syslog | grep CRON
+
+# Verify script permissions
+ls -la /usr/local/bin/etcd-backup.sh
+```
+
+**Upload Failures**:
+```bash
+# Check AWS credentials
+aws sts get-caller-identity
+
+# Verify IAM permissions
+aws s3 ls s3://${BUCKET}/etcd-backups/
+
+# Check backup logs
+sudo tail -50 /var/log/etcd-backup.log
+```
+
+**Snapshot Creation Failures**:
+```bash
+# Verify etcd is running
+sudo systemctl status etcd
+
+# Check etcd certificates exist
+sudo ls -la /etc/kubernetes/pki/etcd/
+
+# Test etcd connectivity
+sudo ETCDCTL_API=3 etcdctl \
+  --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key \
+  endpoint health
+```
+
+### Configuration Options
+
+**Change Backup Frequency**:
+Edit `cluster-setup/playbooks/20-setup-etcd-backup.yml`:
+```yaml
+- name: Setup etcd backup cron job to run every 3 hours
+  cron:
+    minute: "0"
+    hour: "*/3"  # Change to "*/6" for every 6 hours, "0" for daily at midnight
+```
+
+**Change Retention Period**:
+Edit `terraform.tfvars`:
+```hcl
+etcd_backup_retention_days = 30  # Change from default 90 days
+```
+
+### Best Practices
+
+1. **Regular Verification**: Periodically verify backups are being created and uploaded
+2. **Test Restores**: Test restore procedures in a non-production environment
+3. **Monitor Logs**: Set up log monitoring for backup failures
+4. **Document Restore Procedures**: Keep restore procedures documented and accessible
+5. **Multiple Backups**: Consider additional backup strategies for critical environments
 
 ## ⚙️ Configuration Details
 
@@ -656,7 +996,7 @@ make destroy-infrastructure
 
 ### Addons
 - `make setup-addons` - Install all addons
-- Individual targets: `nginx-ingress`, `ebs-csi`, `efs-csi`, `cert-manager`, `metrics-server`, `argocd`
+- Individual targets: `nginx-ingress`, `ebs-csi`, `efs-csi`, `cert-manager`, `metrics-server`, `argocd`, `etcd-backup`
 
 ### Cleanup
 - `make cleanup-cluster` - Reset Kubernetes cluster
@@ -683,6 +1023,17 @@ kubectl get svc -n ingress-nginx
 
 # Check node labels
 kubectl get nodes --show-labels
+
+# Check etcd backup status (on master node)
+ssh -i k8s-cluster-key ubuntu@<master-public-ip>
+sudo crontab -l
+sudo tail -f /var/log/etcd-backup.log
+
+# List etcd backups in S3
+cd staging/k8s-cluster
+BUCKET=$(terraform output -raw etcd_backup_bucket_name)
+REGION=$(terraform output -raw aws_region)
+aws s3 ls s3://${BUCKET}/etcd-backups/ --region ${REGION}
 ```
 
 ## 📚 Additional Resources
@@ -695,4 +1046,4 @@ kubectl get nodes --show-labels
 
 ---
 
-**Last Updated**: Configuration uses Calico CNI, NGINX Ingress with hostPort mode, and direct worker node access (no AWS Load Balancer).
+**Last Updated**: Configuration uses Calico CNI, NGINX Ingress with hostPort mode, direct worker node access (no AWS Load Balancer), and automated etcd backups to S3 every 3 hours.
