@@ -1,5 +1,13 @@
 # 3-Node Kubernetes Cluster Infrastructure on AWS
 
+![Kubernetes](https://img.shields.io/badge/kubernetes-v1.28-326CE5?style=flat&logo=kubernetes&logoColor=white)
+![Ansible](https://img.shields.io/badge/ansible-automated-EE0000?style=flat&logo=ansible&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-232F3E?style=flat&logo=amazon-aws&logoColor=white)
+![EC2](https://img.shields.io/badge/EC2-instances-FF9900?style=flat&logo=amazon-ec2&logoColor=white)
+![S3](https://img.shields.io/badge/S3-storage-569A31?style=flat&logo=amazon-s3&logoColor=white)
+![Terraform](https://img.shields.io/badge/terraform-infrastructure-7B42BC?style=flat&logo=terraform&logoColor=white)
+![ArgoCD](https://img.shields.io/badge/argocd-gitops-EF7B4D?style=flat&logo=argo&logoColor=white)
+
 A complete, production-ready Kubernetes cluster setup on AWS using Terraform for infrastructure provisioning and Ansible for cluster configuration. This setup creates a self-managed Kubernetes cluster with Calico CNI, NGINX Ingress, storage drivers, GitOps capabilities, and automated etcd backups.
 
 ## 🎯 What We're Doing
